@@ -126,6 +126,35 @@ class RiskModel:
         label = "high" if p >= HIGH_THRESHOLD else "medium" if p >= MEDIUM_THRESHOLD else "low"
         return round(p, 4), label
 
+    def bootstrap_interval(
+        self,
+        domain_stress: dict[str, float],
+        baseline: dict[str, float],
+        n: int = 200,
+        perturb: float = 0.25,
+    ) -> tuple[float, float]:
+        """
+        Approximate 90% confidence interval by perturbing coefficients ±25%.
+        Used for the risk interval shown in the UI (plan section 5).
+        Fast: n=200 draws, report 5th/95th percentile.
+        Phase 7: replace with proper bootstrap on scenario seeds.
+        """
+        import random
+        orig_beta  = dict(self.beta)
+        orig_gamma = dict(self.gamma)
+        scores = []
+        for _ in range(n):
+            self.beta  = {k: max(0.0, v * (1 + random.uniform(-perturb, perturb)))
+                          for k, v in orig_beta.items()}
+            self.gamma = {k: max(0.0, v * (1 + random.uniform(-perturb, perturb)))
+                          for k, v in orig_gamma.items()}
+            p, _ = self.score(domain_stress, baseline)
+            scores.append(p)
+        self.beta  = orig_beta
+        self.gamma = orig_gamma
+        scores.sort()
+        return round(scores[int(0.05 * n)], 3), round(scores[int(0.95 * n)], 3)
+
     def driver_contributions(
         self,
         domain_stress: dict[str, float],
