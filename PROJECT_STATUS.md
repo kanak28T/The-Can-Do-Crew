@@ -14,8 +14,8 @@
 | **Phase 0** (Day 1 Setup) | ✅ DONE | 100% | A1 + A2 |
 | **Phase 1** (Day 2 Core Engine) | ✅ DONE | 100% | A1 + A2 |
 | **Phase 2** (Multi-domain + Simulators) | ✅ DONE | 100% | All teams |
-| **Phase 3** (60% Loss + Unknown State) | 🔄 NEXT | 0% | A1 + A2 |
-| **Phase 4** (Frontend + Dispatch) | ⏳ Pending | 0% | B1 + B2 |
+| **Phase 3** (60% Loss + Unknown State) | ✅ DONE | 100% | A1 + A2 |
+| **Phase 4** (Frontend + Dispatch) | 🔄 NEXT | 0% | B1 + B2 |
 | **Phase 5** (Driver Analysis) | ⏳ Pending | 0% | A2 |
 | **Phase 6** (FedAvg + Privacy) | ⏳ Pending | 0% | A2 |
 | **Phase 7** (Evaluation Harness) | ⏳ Pending | 0% | A1 + A2 |
