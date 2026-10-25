@@ -1,0 +1,33 @@
+# UrbanPulse — Python dependencies
+# Install: python -m pip install -r requirements.txt
+#
+# Note: 'pip' may not be on PATH on some machines. Use 'python -m pip' instead.
+
+# Core backend
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+pydantic==2.10.3
+
+# Geospatial
+h3==4.2.1
+geopandas==1.0.1
+shapely==2.0.6
+rasterio==1.4.3
+osmnx==2.0.1
+networkx==3.4.2
+pyproj==3.7.0
+
+# Data
+pandas==2.2.3
+numpy==2.2.0
+scikit-learn==1.6.0
+
+# Simulation / evaluation
+pyyaml==6.0.2
+
+# Privacy / federated
+# (no extra deps — custom FedAvg is pure numpy)
+
+# Dev / testing
+pytest==8.3.4
+httpx==0.28.1     # for FastAPI TestClient
