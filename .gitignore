@@ -17,6 +17,8 @@ data/*.tif
 data/*.graphml
 data/*.parquet
 data/*.db
+*.db
+db/
 data/raw_viirs/
 
 # Evaluation holdouts / truth

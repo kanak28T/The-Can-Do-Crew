@@ -84,7 +84,7 @@ def build_grid_geojson(cells):
     for c in cells:
         feats.append({
             "type": "Feature",
-            "properties": {"h3_cell": c, "h3_parent_r8": h3.cell_to_parent(c, PARENT_RES)},
+            "properties": {"cell": c, "resolution": h3.get_resolution(c)},
             "geometry": {"type": "Polygon", "coordinates": [cell_ring_lnglat(c)]},
         })
     return {"type": "FeatureCollection", "features": feats}
@@ -93,9 +93,15 @@ def build_grid_geojson(cells):
 def load_grid_cells(path=None):
     path = Path(path) if path else DATA / "nagpur_h3_res9.geojson"
     gj = read_json(path)
-    cells = [f["properties"]["h3_cell"] for f in gj["features"]]
+    cells = []
+    for f in gj.get("features", []):
+        props = f.get("properties", {})
+        c = props.get("cell") or props.get("h3_cell")
+        if not c:
+            raise ValueError("missing 'cell' property in grid file feature")
+        cells.append(c)
     if len(set(cells)) != len(cells):
-        raise ValueError("duplicate h3_cell in grid file")
+        raise ValueError("duplicate cell in grid file")
     return sorted(cells)
 
 
@@ -492,4 +498,4 @@ def classify_overpass_error(exc: Exception, endpoint: str | None = None) -> str:
             f"Error: {exc}\n\n"
             f"Diagnosis: Query failed or returned invalid response.\n"
             f"Actionable Fix: Check your query syntax or try a different endpoint via --endpoint."
-        )
+        )

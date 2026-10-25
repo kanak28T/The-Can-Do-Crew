@@ -153,10 +153,59 @@ def test_grid_geojson_contract():
     cells = make_cells(2, 2)
     gj = b2lib.build_grid_geojson(cells)
     f = gj["features"][0]
-    assert set(f["properties"]) == {"h3_cell", "h3_parent_r8"}
+    assert set(f["properties"]) == {"cell", "resolution"}
+    assert f["properties"]["resolution"] == 9
     ring = f["geometry"]["coordinates"][0]
     assert ring[0] == ring[-1]
     json.dumps(gj)
+
+
+def test_canonical_grid_validation():
+    """Verify canonical data/nagpur_h3_res9.geojson:
+    - Exists and is valid JSON
+    - Contains exactly 10,776 features
+    - Properties are 'cell' and 'resolution'
+    - Every feature has resolution 9
+    - Every cell value is a valid H3 cell at resolution 9
+    - All cell IDs are unique
+    - Parent resolution-8 cells can be computed dynamically
+    - Does not contain or require legacy 'h3_cell' or 'h3_parent_r8'
+    """
+    import h3
+    path = b2lib.DATA / "nagpur_h3_res9.geojson"
+    assert path.exists(), f"{path} does not exist"
+
+    gj = b2lib.read_json(path)
+    features = gj.get("features", [])
+    assert len(features) == 10776, f"Expected 10776 features, got {len(features)}"
+
+    cells = []
+    for f in features:
+        props = f.get("properties", {})
+        assert "cell" in props, f"Missing 'cell' in properties: {props}"
+        assert "resolution" in props, f"Missing 'resolution' in properties: {props}"
+        assert props["resolution"] == 9, f"Unexpected resolution: {props['resolution']}"
+        assert "h3_cell" not in props, f"Legacy 'h3_cell' found in properties: {props}"
+        assert "h3_parent_r8" not in props, f"Legacy 'h3_parent_r8' found in properties: {props}"
+
+        cell = props["cell"]
+        cells.append(cell)
+
+        # Parent resolution-8 dynamically calculated
+        parent = h3.cell_to_parent(cell, 8)
+        assert parent is not None
+
+        if REAL_H3:
+            assert h3.is_valid_cell(cell), f"Invalid H3 cell: {cell}"
+            assert h3.get_resolution(cell) == 9
+            assert h3.get_resolution(parent) == 8
+
+    assert len(set(cells)) == 10776, f"Expected 10776 unique cells, got {len(set(cells))}"
+
+    # Verify load_grid_cells loads canonical grid correctly without legacy properties
+    loaded = b2lib.load_grid_cells(path)
+    assert len(loaded) == 10776
+    assert loaded == sorted(cells)
 
 
 @pytest.mark.skipif(not REAL_H3, reason="needs the real h3 package")

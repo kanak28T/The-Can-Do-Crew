@@ -56,7 +56,7 @@ def main():
     assert len(set(cells)) == len(cells)
     b2lib.write_json(b2lib.DATA / "nagpur_h3_res9.geojson", b2lib.build_grid_geojson(cells))
     print(f"{len(cells)} r9 cells -> data/nagpur_h3_res9.geojson")
-    print("Tell B1 + Alpha: property name is 'h3_cell' (parent: 'h3_parent_r8'). Verify the cell count.")
+    print("Tell B1 + Alpha: property name is 'cell' (resolution: 'resolution', parent r8 computed via h3.cell_to_parent). Verify the cell count.")
 
     b2lib.register_source("Study polygon (NMC boundary)",
                           "https://nominatim.openstreetmap.org" if not args.polygon else args.polygon,

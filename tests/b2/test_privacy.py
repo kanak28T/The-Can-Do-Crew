@@ -79,3 +79,46 @@ def test_deterministic_regardless_of_input_order():
     o1, _ = apply_privacy(recs, 5, 0)
     o2, _ = apply_privacy(list(reversed(recs)), 5, 0)
     assert o1 == o2
+
+
+def test_merge_subcell_helper():
+    from engine.privacy import merge_subcell
+    cell = h3.latlng_to_cell(21.1, 79.05, 9)
+    parent = h3.cell_to_parent(cell, 8)
+
+    # Below k -> merged to r8 parent
+    assert merge_subcell(cell, k=5, contributor_count=4) == parent
+    # At or above k -> remains r9 cell
+    assert merge_subcell(cell, k=5, contributor_count=5) == cell
+    assert merge_subcell(cell, k=5, contributor_count=10) == cell
+
+    # Validations
+    with pytest.raises(ValueError):
+        merge_subcell(cell, k=0)
+    with pytest.raises(ValueError):
+        merge_subcell(cell, contributor_count=-1)
+    with pytest.raises(ValueError):
+        merge_subcell(parent, k=5)  # must be res 9
+
+
+def test_apply_k_merge_wrapper():
+    from engine.privacy import apply_k_merge
+    a, b, parent = siblings()
+    cells = [
+        {"cell_id": a, "population": 400.0, "risk": 0.2, "confidence": 0.9},
+        {"cell_id": b, "population": 600.0, "risk": 0.8, "confidence": 0.7},
+    ]
+
+    # When all meet k
+    counts_ok = {a: 6, b: 7}
+    res_ok = apply_k_merge(cells, counts_ok, k=5)
+    assert len(res_ok) == 2
+    assert all(not r["was_merged"] for r in res_ok)
+
+    # When one fails k -> whole parent merged to r8
+    counts_fail = {a: 9, b: 2}
+    res_merged = apply_k_merge(cells, counts_fail, k=5)
+    assert len(res_merged) == 1
+    assert res_merged[0]["cell_id"] == parent
+    assert res_merged[0]["was_merged"] is True
+    assert res_merged[0]["resolution"] == 8
