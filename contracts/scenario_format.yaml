@@ -1,0 +1,92 @@
+# UrbanPulse — Scenario Format Contract
+# Version: 1.0
+#
+# This file defines the YAML structure for all evaluation scenarios.
+# The engine NEVER reads the ground_truth block — only eval/ harness reads it.
+# The scenario_owner keeps scenarios D, E, and adversarial in eval/scenarios/holdout/
+# and does NOT share them with the engine developers until Phase 7.
+#
+# All timestamps are ISO 8601 UTC. Use relative offsets (T+0s, T+30m, T+2h) for
+# time-compressed replay; the runner multiplies by the compression factor.
+#
+# See contracts/event_schema.py for the canonical event field definitions.
+
+scenario_id: "SCN-A-001"                  # Unique ID. Format: SCN-<FAMILY>-<NNN>
+family: "A"                               # A–I or ADV (adversarial). See plan section 9.
+name: "Road closure + transit loss"       # Human-readable label
+description: >
+  Road R-14 closes at T+0, blocking the primary route to City Hospital.
+  Bus route 4 suspends at T+30m. The zone around cells 891f1d48003ffff
+  becomes isolated from healthcare access.
+seed: 42                                  # Integer. Same seed = identical replay.
+time_compression_factor: 60              # 1 real second = 60 simulated seconds
+
+# ── Ground truth (NEVER loaded by the engine) ─────────────────────────────────
+ground_truth:
+  polygon_h3_cells:                       # List of H3 res-9 cells in the true zone
+    - "891f1d48003ffff"
+    - "891f1d48007ffff"
+    - "891f1d4800bffff"
+  severity: "High"                        # Expected label for the zone
+  notes: "Cells along the blocked corridor only; not the full ward."
+
+# ── Causal events (injected into /ingest by the scenario runner) ──────────────
+events:
+  - offset: "T+0s"
+    domain: "transport"
+    event_type: "road_closure"
+    entity_id: "road_R14"
+    h3_cell: "891f1d48003ffff"
+    severity: 0.9
+    source_type: "official"
+    raw_text: null                        # null = structured event, no parsing needed
+
+  - offset: "T+30m"
+    domain: "transport"
+    event_type: "transit_suspension"
+    entity_id: "route_4"
+    h3_cell: "891f1d48003ffff"
+    severity: 0.85
+    source_type: "official"
+    raw_text: "Bus route 4 suspended until further notice"
+
+  - offset: "T+45m"
+    domain: "transport"
+    event_type: "transit_suspension"
+    entity_id: "route_4"
+    h3_cell: "891f1d48007ffff"
+    severity: 0.85
+    source_type: "crowdsourced"
+    raw_text: "Route 4 cancelled, no buses on this road"
+
+# ── Decoy events (noise elsewhere; should NOT raise risk in ground-truth cells) ─
+decoys:
+  - offset: "T+15m"
+    domain: "power"
+    event_type: "voltage_drop"
+    entity_id: "feeder_F07"
+    h3_cell: "891f1d4801bffff"     # Different area — a decoy
+    severity: 0.3
+    source_type: "sensor"
+    raw_text: null
+
+# ── Feed-loss schedule ─────────────────────────────────────────────────────────
+feed_loss:
+  - offset: "T+1h"
+    pattern: "whole_domain"        # Options: random_streams | whole_domain | contiguous_area
+    domain: "transport"            # Which domain to cut (for whole_domain pattern)
+    fraction: 0.60                 # 0.0–1.0; 0.60 = abrupt 60% cut
+
+# ── Contradiction schedule ─────────────────────────────────────────────────────
+contradictions:
+  - offset: "T+2h"
+    conflicting_event:
+      domain: "transport"
+      event_type: "road_open"      # Official says road reopened — but crowd says still closed
+      entity_id: "road_R14"
+      h3_cell: "891f1d48003ffff"
+      severity: 0.1
+      source_type: "official"
+      raw_text: null
+    # The scenario runner will inject the conflicting event after the original closure.
+    # Expected engine behaviour: confidence drops, "verify" action added to dispatch log.
