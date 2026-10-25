@@ -1,0 +1,60 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Mayo Hospital",
+        "type": "hospital"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [79.0882, 21.1458]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Government Medical College and Hospital (GMCH)",
+        "type": "hospital"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [79.0800, 21.1500]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Nagpur Municipal Corporation Hospital",
+        "type": "hospital"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [79.0700, 21.1200]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Alexis Multispeciality Hospital",
+        "type": "hospital"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [79.0650, 21.1350]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Kingsway Hospital",
+        "type": "hospital"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [79.0920, 21.1480]
+      }
+    }
+  ]
+}

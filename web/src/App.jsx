@@ -5,7 +5,8 @@ import SectorPanel from './components/SectorPanel';
 import DispatchLog from './components/DispatchLog';
 import StressConsole from './components/StressConsole';
 import PrivacyPanel from './components/PrivacyPanel';
-import initialMockData from './data/mock_cells.json';
+import nagpurH3Grid from './data/nagpur_h3_res9.json';
+import nagpurWards from './data/nagpur_wards.json';
 import './App.css';
 
 // API base URL — set VITE_API_URL in .env for deployment (Day 4)
@@ -14,7 +15,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const SSE_URL = `${API_BASE}/sse/events`;
 
 export default function App() {
-  const [geojsonData, setGeojsonData] = useState(initialMockData);
+  const [geojsonData, setGeojsonData] = useState(nagpurH3Grid);
   const [sseStatus, setSseStatus] = useState('connecting'); // connected | connecting | offline
   const [lastEvent, setLastEvent] = useState(null);
   const [selectedSector, setSelectedSector] = useState(null);
@@ -254,6 +255,7 @@ export default function App() {
       <main className="app-main">
         <Map
           geojsonData={geojsonData}
+          wardGeojsonData={nagpurWards}
           onCellSelect={(cell) => {
             setSelectedSector(cell);
             setIsSectorPanelOpen(true);

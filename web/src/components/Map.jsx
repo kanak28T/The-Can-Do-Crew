@@ -6,7 +6,7 @@ import './Map.css';
 // Default center: Zero Mile, Nagpur, Maharashtra
 const NAGPUR_CENTER = [79.0882, 21.1458];
 
-export default function Map({ geojsonData, onCellSelect }) {
+export default function Map({ geojsonData, wardGeojsonData, onCellSelect }) {
   const mapContainer = useRef(null);
   const mapInstance = useRef(null);
   const hoveredStateId = useRef(null);
@@ -76,23 +76,19 @@ export default function Map({ geojsonData, onCellSelect }) {
         }
       });
 
-      // Layer 3: Cell Labels (Ward / Risk)
+      // Layer 3: Cell Labels (Risk %)
       map.addLayer({
         id: 'h3-cells-label',
         type: 'symbol',
         source: 'h3-cells',
         layout: {
           'text-field': [
-            'format',
-            ['get', 'ward'], { 'font-scale': 0.75 },
-            '\n', {},
-            ['case',
-              ['has', 'risk'],
-              ['concat', 'z: ', ['to-string', ['round', ['*', ['get', 'risk'], 100]]], '%'],
-              'N/A'
-            ], { 'font-scale': 0.7, 'text-color': '#94a3b8' }
+            'case',
+            ['has', 'risk'],
+            ['concat', ['to-string', ['round', ['*', ['get', 'risk'], 100]]], '%'],
+            'N/A'
           ],
-          'text-size': 11,
+          'text-size': 10,
           'text-anchor': 'center',
           'text-allow-overlap': false
         },
@@ -102,6 +98,43 @@ export default function Map({ geojsonData, onCellSelect }) {
           'text-halo-width': 1.5
         }
       });
+
+      // Layer 4 & 5: Ward Boundaries Overlay (D2: Wards are display labels only)
+      if (wardGeojsonData) {
+        map.addSource('nagpur-wards', {
+          type: 'geojson',
+          data: wardGeojsonData,
+        });
+
+        map.addLayer({
+          id: 'nagpur-wards-line',
+          type: 'line',
+          source: 'nagpur-wards',
+          paint: {
+            'line-color': '#38bdf8',
+            'line-width': 2.2,
+            'line-dasharray': [3, 2],
+            'line-opacity': 0.85
+          }
+        });
+
+        map.addLayer({
+          id: 'nagpur-wards-label',
+          type: 'symbol',
+          source: 'nagpur-wards',
+          layout: {
+            'text-field': ['get', 'name'],
+            'text-size': 13,
+            'text-anchor': 'center',
+            'text-allow-overlap': false
+          },
+          paint: {
+            'text-color': '#ffffff',
+            'text-halo-color': 'rgba(15, 23, 42, 0.95)',
+            'text-halo-width': 2.0
+          }
+        });
+      }
 
       // Initial cell selection if features exist
       if (geojsonData?.features?.length > 0) {
@@ -256,6 +289,10 @@ export default function Map({ geojsonData, onCellSelect }) {
         <div className="legend-item">
           <span className="legend-swatch swatch-unknown" />
           <span>Unknown (Silence)</span>
+        </div>
+        <div className="legend-item" style={{ borderLeft: '1px solid rgba(255,255,255,0.15)', paddingLeft: '0.75rem' }}>
+          <span style={{ display: 'inline-block', width: '16px', height: '0px', borderTop: '2px dashed #38bdf8' }} />
+          <span style={{ color: '#38bdf8' }}>Ward Overlay</span>
         </div>
       </div>
     </div>
