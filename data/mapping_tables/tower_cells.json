@@ -1,13 +1,61 @@
 {
-  "_comment": "Cell tower → H3 cells it covers. Coverage radius ~500m at res-9.",
-  "tower_T01": {"feeder": "F01", "cells": ["890c1d28003ffff","890c1d28007ffff"]},
-  "tower_T02": {"feeder": "F02", "cells": ["890c1d28017ffff","890c1d2801bffff"]},
-  "tower_T03": {"feeder": "F03", "cells": ["890c1d2802bffff","890c1d2802fffff"]},
-  "tower_T04": {"feeder": "F04", "cells": ["890c1d28043ffff","890c1d28047ffff"]},
-  "tower_T05": {"feeder": "F05", "cells": ["890c1d28053ffff","890c1d28057ffff"]},
-  "tower_T06": {"feeder": "F12", "cells": ["890c1d2cf37ffff","890c1d2cf2fffff"]},
-  "tower_T07": {"feeder": "F13", "cells": ["890c1d2cf43ffff","890c1d2cf47ffff"]},
-  "tower_T08": {"feeder": "F14", "cells": ["890c1d2cf57ffff","890c1d2cf5bffff"]},
-  "tower_T09": {"feeder": "F15", "cells": ["890c1d2cf6bffff","890c1d2cf6fffff"]},
-  "tower_T10": {"feeder": "F16", "cells": ["890c1d2cf7fffff","890c1d2cf83ffff"]}
+  "_comment": "Cell tower \u2192 H3 res-9 cells. Approximate from OpenCellID density.",
+  "tower_T01": [],
+  "tower_T02": [
+    "89609612863ffff",
+    "8960961287bffff",
+    "8960961286bffff",
+    "8960961286fffff"
+  ],
+  "tower_T03": [],
+  "tower_T04": [],
+  "tower_T05": [
+    "8960968c24bffff",
+    "8960968d197ffff",
+    "8960968d187ffff",
+    "8960968d1b3ffff"
+  ],
+  "tower_T06": [
+    "8960968da8bffff",
+    "8960968dad7ffff",
+    "8960968dac7ffff"
+  ],
+  "tower_T07": [
+    "896096126a7ffff",
+    "896096126a3ffff"
+  ],
+  "tower_T08": [
+    "8960968d62bffff",
+    "8960968d677ffff"
+  ],
+  "tower_T09": [
+    "89609612443ffff",
+    "8960961245bffff",
+    "8960961244bffff"
+  ],
+  "tower_T10": [
+    "89609612e8fffff",
+    "89609612e8bffff"
+  ],
+  "tower_T11": [
+    "8960968dda7ffff",
+    "8960968dda3ffff"
+  ],
+  "tower_T12": [
+    "8960968d97bffff",
+    "8960968d94fffff",
+    "8960968dbb7ffff"
+  ],
+  "tower_T13": [
+    "8960968dbcfffff",
+    "8960968dbcbffff",
+    "8960968db53ffff",
+    "8960968db57ffff"
+  ],
+  "tower_T14": [],
+  "tower_T15": [
+    "8960961725bffff",
+    "89609610d2fffff",
+    "89609610997ffff"
+  ]
 }

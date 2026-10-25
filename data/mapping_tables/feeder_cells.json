@@ -1,23 +1,140 @@
 {
-  "_comment": "Feeder → H3 res-9 cells mapping. Authored manually from MSEDCL zone reports.",
-  "F01": ["890c1d28003ffff","890c1d28007ffff","890c1d2800bffff","890c1d2800fffff","890c1d28013ffff"],
-  "F02": ["890c1d28017ffff","890c1d2801bffff","890c1d2801fffff","890c1d28023ffff","890c1d28027ffff"],
-  "F03": ["890c1d2802bffff","890c1d2802fffff","890c1d28033ffff","890c1d28037ffff","890c1d2803bffff"],
-  "F04": ["890c1d2803fffff","890c1d28043ffff","890c1d28047ffff","890c1d2804bffff","890c1d2804fffff"],
-  "F05": ["890c1d28053ffff","890c1d28057ffff","890c1d2805bffff","890c1d2805fffff","890c1d28063ffff"],
-  "F06": ["890c1d28067ffff","890c1d2806bffff","890c1d2806fffff","890c1d28073ffff","890c1d28077ffff"],
-  "F07": ["890c1d2807bffff","890c1d2807fffff","890c1d28083ffff","890c1d28087ffff","890c1d2808bffff"],
-  "F08": ["890c1d2808fffff","890c1d28093ffff","890c1d28097ffff","890c1d2809bffff","890c1d2809fffff"],
-  "F09": ["890c1d280a3ffff","890c1d280a7ffff","890c1d280abffff","890c1d280afffff","890c1d280b3ffff"],
-  "F10": ["890c1d280b7ffff","890c1d280bbffff","890c1d280bfffff","890c1d280c3ffff","890c1d280c7ffff"],
-  "F11": ["890c1d280cbffff","890c1d280cfffff","890c1d280d3ffff","890c1d280d7ffff","890c1d280dbffff"],
-  "F12": ["890c1d2cf37ffff","890c1d2cf2fffff","890c1d2cf33ffff","890c1d2cf3bffff","890c1d2cf3fffff"],
-  "F13": ["890c1d2cf43ffff","890c1d2cf47ffff","890c1d2cf4bffff","890c1d2cf4fffff","890c1d2cf53ffff"],
-  "F14": ["890c1d2cf57ffff","890c1d2cf5bffff","890c1d2cf5fffff","890c1d2cf63ffff","890c1d2cf67ffff"],
-  "F15": ["890c1d2cf6bffff","890c1d2cf6fffff","890c1d2cf73ffff","890c1d2cf77ffff","890c1d2cf7bffff"],
-  "F16": ["890c1d2cf7fffff","890c1d2cf83ffff","890c1d2cf87ffff","890c1d2cf8bffff","890c1d2cf8fffff"],
-  "F17": ["890c1d2cf93ffff","890c1d2cf97ffff","890c1d2cf9bffff","890c1d2cf9fffff","890c1d2cfa3ffff"],
-  "F18": ["890c1d2cfa7ffff","890c1d2cfabffff","890c1d2cfafffff","890c1d2cfb3ffff","890c1d2cfb7ffff"],
-  "F19": ["890c1d2cfbbffff","890c1d2cfbfffff","890c1d2cfc3ffff","890c1d2cfc7ffff","890c1d2cfcbffff"],
-  "F20": ["890c1d2cfcfffff","890c1d2cfd3ffff","890c1d2cfd7ffff","890c1d2cfdbffff","890c1d2cfdfffff"]
+  "_comment": "Feeder \u2192 H3 res-9 cells. Simulated from MSEDCL zone reports.",
+  "F01": [
+    "8960968dd53ffff",
+    "8960968dc27ffff",
+    "8960968dd5bffff",
+    "8960968dd43ffff",
+    "8960968dd57ffff"
+  ],
+  "F02": [
+    "8960968d66fffff",
+    "8960968d66bffff",
+    "8960968d2d3ffff"
+  ],
+  "F03": [
+    "8960961742fffff",
+    "8960961742bffff",
+    "89609617093ffff"
+  ],
+  "F04": [
+    "89609612913ffff",
+    "896096129c7ffff",
+    "8960961291bffff"
+  ],
+  "F05": [
+    "8960961233bffff",
+    "8960961230fffff",
+    "89609612377ffff"
+  ],
+  "F06": [
+    "8960968d91bffff",
+    "8960968d9cfffff",
+    "8960968d957ffff",
+    "8960968d90bffff",
+    "8960968d903ffff",
+    "8960968d913ffff",
+    "8960968d9c7ffff",
+    "8960968d9c3ffff"
+  ],
+  "F07": [
+    "89609610d4fffff",
+    "89609610d4bffff",
+    "896096108b3ffff",
+    "896096108b7ffff",
+    "89609610d7bffff",
+    "89609610d47ffff",
+    "89609610d43ffff"
+  ],
+  "F08": [],
+  "F09": [
+    "89609612577ffff",
+    "89609612573ffff",
+    "89609612563ffff",
+    "89609612567ffff"
+  ],
+  "F10": [
+    "89609617593ffff",
+    "8960968db67ffff",
+    "8960961759bffff"
+  ],
+  "F11": [
+    "8960968dac3ffff",
+    "8960968dadbffff",
+    "8960968dacbffff",
+    "8960968dacfffff",
+    "8960968dac7ffff"
+  ],
+  "F12": [
+    "896096104a3ffff",
+    "896096104b3ffff",
+    "8960961234bffff"
+  ],
+  "F13": [
+    "8960961640bffff",
+    "89609616457ffff",
+    "89609616447ffff",
+    "89609616473ffff",
+    "8960961640fffff",
+    "89609616403ffff"
+  ],
+  "F14": [
+    "89609610d83ffff",
+    "89609610d9bffff",
+    "89609610d8bffff",
+    "89609610d8fffff",
+    "89609610d87ffff",
+    "89609610d97ffff",
+    "89609610d93ffff",
+    "89609612b67ffff"
+  ],
+  "F15": [
+    "8960968d1b7ffff",
+    "8960968d1b3ffff",
+    "8960968d1a3ffff",
+    "8960968d1a7ffff",
+    "8960968c24fffff",
+    "8960968c24bffff",
+    "8960968d187ffff"
+  ],
+  "F16": [
+    "8960968d29bffff",
+    "8960968d66fffff",
+    "8960968d2d7ffff",
+    "8960968d28bffff",
+    "8960968d283ffff",
+    "8960968d293ffff",
+    "8960968d667ffff",
+    "8960968d663ffff"
+  ],
+  "F17": [
+    "896096162d7ffff",
+    "896096162d3ffff",
+    "896096162c3ffff"
+  ],
+  "F18": [
+    "89609612eafffff",
+    "89609612eabffff",
+    "89609612e33ffff",
+    "89609612e37ffff",
+    "896096128dbffff",
+    "89609612ea7ffff"
+  ],
+  "F19": [
+    "8960961230bffff",
+    "89609612357ffff",
+    "89609612347ffff",
+    "89609612373ffff",
+    "8960961230fffff"
+  ],
+  "F20": [
+    "8960968ca67ffff",
+    "8960968ca63ffff",
+    "8960968ca6fffff",
+    "8960961649bffff",
+    "89609616493ffff",
+    "8960968ca2bffff",
+    "8960968ca77ffff",
+    "8960968ca73ffff"
+  ]
 }

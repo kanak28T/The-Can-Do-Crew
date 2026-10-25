@@ -1,0 +1,5 @@
+name,url,access_date,license,vintage,local_file,notes
+Study polygon (NMC boundary),https://nominatim.openstreetmap.org,2026-10-25,ODbL 1.0 (OpenStreetMap contributors),OSM live extract,data/nagpur_study_polygon.geojson,OSM Nominatim via OSMnx; area 210.8 km2
+H3 res-9 grid,https://h3geo.org,2026-10-25,derived (Apache-2.0 h3 library),generated,data/nagpur_h3_res9.geojson,2001 cells
+Study polygon (NMC boundary),data/nagpur_study_polygon.geojson,2026-10-25,own work,hand-drawn,data/nagpur_study_polygon.geojson,local file data/nagpur_study_polygon.geojson; area 210.8 km2
+H3 res-9 grid,https://h3geo.org,2026-10-25,derived (Apache-2.0 h3 library),generated,data/nagpur_h3_res9.geojson,2001 cells

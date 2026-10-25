@@ -1,10 +1,9 @@
 """
 Aggregate WorldPop 100m raster to H3 res-9 cells.
-Output: data/population_per_cell.json  →  {h3_cell: population_count}
 
 Owner  : Kanak (A2) — Day 2
 Input  : data/worldpop_nagpur.tif  (from download_worldpop.py)
-         data/nagpur_h3_res9.geojson  (from generate_h3_grid.py)
+         data/nagpur_h3_res9.geojson  (from Sanvi B2 — must exist first)
 Output : data/population_per_cell.json  {h3_cell: population_count}
 
 Usage:
@@ -13,7 +12,6 @@ Usage:
 
 import json
 import os
-import sys
 from pathlib import Path
 
 DATA_DIR    = Path(__file__).parent.parent
@@ -22,77 +20,54 @@ GRID_PATH   = DATA_DIR / "nagpur_h3_res9.geojson"
 OUT_PATH    = DATA_DIR / "population_per_cell.json"
 
 
-def aggregate_worldpop_to_h3(
-    raster_path: str | Path,
-    h3_cells: list[str],
-) -> dict[str, float]:
-    """
-    For each H3 cell, sum WorldPop pixels that fall inside it.
-    """
+def aggregate(raster_path: Path, cells: list[str]) -> dict[str, float]:
+    """Sum WorldPop pixels inside each H3 res-9 cell polygon."""
     try:
-        import h3
-        import numpy as np
         import rasterio
+        import numpy as np
+        import h3
         from rasterio.mask import mask as rio_mask
-    except ImportError as exc:
-        print(f"⚠ Optional dependency missing ({exc}) — returning mock data.")
-        return {cell: 5000.0 for cell in h3_cells}
+    except ImportError:
+        print("[warn] rasterio/numpy/h3 not installed — using mock population (5000 per cell)")
+        return {cell: 5000.0 for cell in cells}
 
-    result: dict[str, float] = {}
-
+    result = {}
     with rasterio.open(raster_path) as src:
-        for cell in h3_cells:
-            boundary = h3.cell_to_boundary(cell)
-            ring = [[lng, lat] for lat, lng in boundary]
-            ring.append(ring[0])
+        for cell in cells:
+            boundary = h3.cell_to_boundary(cell)  # list of (lat, lng)
             polygon = {
                 "type": "Polygon",
-                "coordinates": [ring],
+                "coordinates": [
+                    [[lng, lat] for lat, lng in boundary]
+                    + [[boundary[0][1], boundary[0][0]]]  # close the ring
+                ],
             }
             try:
                 out_image, _ = rio_mask(src, [polygon], crop=True, nodata=0)
                 pop = float(np.nansum(out_image[out_image > 0]))
-                result[cell] = round(pop, 2)
             except Exception:
-                result[cell] = 0.0
-
+                pop = 0.0
+            result[cell] = round(pop, 2)
     return result
 
 
-def _mock_population(h3_cells: list[str]) -> dict[str, float]:
-    """Return uniform mock population (5 000/cell) for testing."""
-    return {cell: 5000.0 for cell in h3_cells}
-
-
-def main(
-    grid_path: Path = GRID_PATH,
-    raster_path: Path = RASTER_PATH,
-    output_path: Path = OUT_PATH,
-) -> None:
-    if not grid_path.exists():
-        print(f"❌ H3 grid not found: {grid_path}")
-        print("   Run: python data/download_scripts/generate_h3_grid.py")
-        sys.exit(1)
-
-    with open(grid_path) as f:
-        grid = json.load(f)
-    cells: list[str] = [feat["properties"]["cell"] for feat in grid["features"]]
-    print(f"Grid loaded: {len(cells)} H3 res-9 cells")
-
-    if not raster_path.exists():
-        print(f"⚠ WorldPop raster not found ({raster_path}) — using mock data (5 000/cell)")
-        pop_data = _mock_population(cells)
-    else:
-        print(f"Aggregating WorldPop raster: {raster_path}")
-        pop_data = aggregate_worldpop_to_h3(raster_path, cells)
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, "w") as f:
-        json.dump(pop_data, f, indent=2)
-
-    total_pop = sum(pop_data.values())
-    print(f"✅ Saved {output_path} ({len(pop_data)} cells, total population ≈ {total_pop:,.0f})")
-
-
 if __name__ == "__main__":
-    main()
+    if not GRID_PATH.exists():
+        print(f"[error] {GRID_PATH} not found — Sanvi (B2) must commit nagpur_h3_res9.geojson first.")
+        raise SystemExit(1)
+
+    with open(GRID_PATH) as f:
+        grid = json.load(f)
+    cells = [feat["properties"]["cell"] for feat in grid["features"]]
+    print(f"[info] {len(cells)} H3 res-9 cells loaded.")
+
+    if not RASTER_PATH.exists():
+        print("[warn] WorldPop raster not downloaded yet — using mock data (5000 per cell).")
+        pop_data = {cell: 5000.0 for cell in cells}
+    else:
+        print(f"[aggregate] Summing WorldPop pixels per cell ...")
+        pop_data = aggregate(RASTER_PATH, cells)
+
+    with open(OUT_PATH, "w") as f:
+        json.dump(pop_data, f, indent=2)
+    print(f"[done] {OUT_PATH} — {len(pop_data)} cells.")

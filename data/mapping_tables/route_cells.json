@@ -1,15 +1,128 @@
 {
-  "_comment": "Bus route → H3 res-9 cells. Authored from OSM transit + Nagpur MSRTC route map.",
-  "route_1":  ["890c1d28003ffff","890c1d28007ffff","890c1d2800bffff","890c1d2800fffff"],
-  "route_2":  ["890c1d28013ffff","890c1d28017ffff","890c1d2801bffff","890c1d2801fffff"],
-  "route_3":  ["890c1d28023ffff","890c1d28027ffff","890c1d2802bffff","890c1d2802fffff"],
-  "route_4":  ["890c1d2cf37ffff","890c1d2cf2fffff","890c1d2cf33ffff","890c1d2cf3bffff","890c1d2cf3fffff"],
-  "route_5":  ["890c1d28033ffff","890c1d28037ffff","890c1d2803bffff","890c1d2803fffff"],
-  "route_6":  ["890c1d28043ffff","890c1d28047ffff","890c1d2804bffff","890c1d2804fffff"],
-  "route_7":  ["890c1d28053ffff","890c1d28057ffff","890c1d2805bffff","890c1d2805fffff"],
-  "route_8":  ["890c1d28063ffff","890c1d28067ffff","890c1d2806bffff","890c1d2806fffff"],
-  "route_9":  ["890c1d28073ffff","890c1d28077ffff","890c1d2807bffff","890c1d2807fffff"],
-  "route_10": ["890c1d28083ffff","890c1d28087ffff","890c1d2808bffff","890c1d2808fffff"],
-  "route_11": ["890c1d28093ffff","890c1d28097ffff","890c1d2809bffff","890c1d2809fffff"],
-  "route_12": ["890c1d280a3ffff","890c1d280a7ffff","890c1d280abffff","890c1d280afffff"]
+  "_comment": "Bus route \u2192 H3 res-9 cells. Simulated from Nagpur Aapli Bus stop locations.",
+  "route_1": [
+    "89609612517ffff",
+    "8960961256bffff",
+    "896096120afffff",
+    "89609612383ffff",
+    "8960961230bffff",
+    "896096105c3ffff"
+  ],
+  "route_2": [
+    "89609610c27ffff",
+    "89609610c1bffff",
+    "89609612a2bffff",
+    "89609612a8fffff",
+    "89609612a97ffff",
+    "89609612e17ffff",
+    "89609612e93ffff",
+    "89609612177ffff",
+    "89609612567ffff",
+    "8960961252bffff",
+    "896096125bbffff"
+  ],
+  "route_3": [
+    "896096105d3ffff",
+    "8960961232fffff",
+    "89609612ed7ffff",
+    "89609612e83ffff",
+    "89609612c8bffff",
+    "89609612cbbffff",
+    "8960968d33bffff",
+    "8960968ded7ffff",
+    "8960968d16fffff",
+    "8960968d12fffff",
+    "8960968dcbbffff"
+  ],
+  "route_4": [
+    "8960961237bffff",
+    "8960961230bffff",
+    "896096123abffff",
+    "8960961214fffff",
+    "8960961203bffff",
+    "896096121dbffff",
+    "8960961251bffff",
+    "8960961250fffff"
+  ],
+  "route_5": [
+    "89609617533ffff",
+    "896096170b3ffff",
+    "896096170cfffff",
+    "89609617633ffff",
+    "89609610da7ffff",
+    "89609610dd3ffff",
+    "89609610c2bffff"
+  ],
+  "route_6": [
+    "89609612d47ffff",
+    "89609612d2bffff",
+    "896096174c3ffff",
+    "89609617407ffff",
+    "896096175c7ffff",
+    "89609617507ffff"
+  ],
+  "route_7": [
+    "896096125bbffff",
+    "89609612547ffff",
+    "896096121dbffff",
+    "896096121d3ffff",
+    "89609612027ffff",
+    "89609612393ffff",
+    "89609612307ffff",
+    "89609612317ffff",
+    "89609612363ffff",
+    "89609612377ffff",
+    "8960961236fffff"
+  ],
+  "route_8": [
+    "8960968dcc3ffff",
+    "8960968dcc7ffff",
+    "8960968dea7ffff",
+    "8960968de17ffff",
+    "8960968de6fffff",
+    "89609612d33ffff",
+    "89609612913ffff",
+    "8960961291bffff",
+    "89609612b13ffff",
+    "89609612b03ffff",
+    "89609610ca3ffff",
+    "89609610c2bffff"
+  ],
+  "route_9": [
+    "8960968dcc7ffff",
+    "8960968d1a3ffff",
+    "8960968d18fffff",
+    "8960968d033ffff",
+    "8960968d01bffff",
+    "8960968d05bffff",
+    "896096125b7ffff",
+    "896096125bbffff"
+  ],
+  "route_10": [
+    "89609612d4fffff",
+    "89609612d8fffff",
+    "8960968de47ffff",
+    "8960968dc4bffff",
+    "8960968dc83ffff"
+  ],
+  "route_11": [
+    "896096125cfffff",
+    "8960968d2dbffff",
+    "8960968d267ffff",
+    "89609612cb3ffff",
+    "89609612d8bffff",
+    "8960968dadbffff",
+    "8960968da73ffff",
+    "896096174bbffff",
+    "89609617437ffff",
+    "8960961750fffff"
+  ],
+  "route_12": [
+    "896096128a3ffff",
+    "89609612c37ffff",
+    "89609612c13ffff",
+    "8960968d24fffff",
+    "89609612537ffff",
+    "8960961258fffff"
+  ]
 }
