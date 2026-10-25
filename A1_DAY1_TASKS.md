@@ -15,7 +15,7 @@ Go to: https://opencellid.org/
 3. Confirm email
 4. Go to API key section
 5. Generate API key
-6. Save it locally (don't commit to repo)
+6. Save it locally (don't commit to repo)x`
 
 **Why:** For tower-to-cell mapping on Day 2. If not approved, use synthetic towers instead.
 
@@ -23,49 +23,70 @@ Go to: https://opencellid.org/
 
 ## Task A0.2: Docker Compose Setup (45 min) ⏱️
 
-**File:** `docker-compose.yml` (root level)
+### What is Docker & Docker Compose? (Conceptual)
 
-Create this file:
+**Docker** is like a "container" for your application:
+- Normally: Python → FastAPI → SQLite (installed on YOUR computer)
+- With Docker: Python + FastAPI + SQLite → packaged in a **container** → runs the same on ANY computer
 
-```yaml
-version: '3.8'
+**Docker Compose** is like a **recipe** that says:
+- "Start a Python container (for FastAPI)"
+- "Map port 8000 on my computer to port 8000 inside the container"
+- "Create a folder for database files that persists after container stops"
+- "Run these commands inside the container"
 
-services:
-  api:
-    build: .
-    ports:
-      - "8000:8000"
-    volumes:
-      - ./data:/app/data
-      - ./db:/app/db
-    environment:
-      - DATABASE_URL=sqlite:////app/db/events.db
-      - PYTHONUNBUFFERED=1
-    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+**Why we use it:**
+- Beta team can run the same container without installing anything
+- Consistent environment across all machines
+- Easy to start/stop/rebuild
 
-  db:
-    image: sqlite:latest
-    volumes:
-      - ./db:/data
-```
+---
 
-Also create:
+### Step 1: Create the `Dockerfile` (5 min)
 
-**`Dockerfile`** (root level)
+**What it does:** Defines how to build the Docker image (a blueprint for the container)
+
+**File location:** Root level (same level as `README.md`)
+
+**Path:** `Dockerfile` (no extension)
+
 ```dockerfile
+# Start with Python 3.10 (slim = smaller image)
 FROM python:3.10-slim
 
+# Inside the container, create /app folder
 WORKDIR /app
 
+# Copy requirements.txt from your computer → container's /app
 COPY requirements.txt .
+
+# Inside container, install Python packages from requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy entire project from your computer → container's /app
 COPY . .
 
+# When container starts, run this command
 CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-**`requirements.txt`** (root level - minimal for now)
+**In simple terms:**
+1. Use Python 3.10 as the base
+2. Create `/app` folder inside container
+3. Copy your `requirements.txt` and install dependencies
+4. Copy your entire project
+5. When the container runs, start FastAPI on port 8000
+
+---
+
+### Step 2: Create `requirements.txt` (5 min)
+
+**What it does:** Lists all Python packages needed for the project
+
+**File location:** Root level
+
+**Path:** `requirements.txt`
+
 ```
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
@@ -73,14 +94,275 @@ pydantic==2.5.0
 h3==3.7.0
 networkx==3.2
 numpy==1.24.3
+osmnx==1.7.1
+rasterio==1.3.9
 ```
 
-**Test it:**
+**Explanation:**
+- `fastapi` = web framework (for `/ingest` and `/sse/events`)
+- `uvicorn` = server that runs FastAPI
+- `pydantic` = validates data schemas (like `CanonicalEvent`)
+- `h3` = library for H3 hexagons (Nagpur grid)
+- `networkx` = graph library (for roads, Dijkstra)
+- `numpy` = numerical computing
+- `osmnx` = downloads OpenStreetMap data
+- `rasterio` = reads geospatial raster files
+
+**Format:** `package_name==version` (exact versions, no surprises)
+
+---
+
+### Step 3: Create `docker-compose.yml` (15 min)
+
+**What it does:** Orchestrates multiple containers and their interactions
+
+**File location:** Root level
+
+**Path:** `docker-compose.yml`
+
+```yaml
+# Docker Compose version (compatibility)
+version: '3.8'
+
+# Services are containers that run
+services:
+  
+  # Service 1: FastAPI API server
+  api:
+    # Build from current directory's Dockerfile
+    build: .
+    
+    # Port mapping: your_computer_port:container_port
+    # "8000:8000" = access FastAPI at http://localhost:8000
+    ports:
+      - "8000:8000"
+    
+    # Volume mapping: your_computer_folder:container_folder
+    # "." = root of project → "/app" in container
+    # This means:
+    # - Code changes on your computer instantly reflect in container (live reload)
+    # - Database files persist after container stops
+    volumes:
+      - .:/app              # Project root → /app in container
+      - ./db:/app/db        # Local db/ → /app/db in container
+      - ./data:/app/data    # Local data/ → /app/data in container
+    
+    # Environment variables inside container
+    environment:
+      - DATABASE_URL=sqlite:////app/db/events.db
+      - PYTHONUNBUFFERED=1  # Don't buffer Python output (see logs in real-time)
+    
+    # Command to run when container starts
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    # Explanation:
+    # - uvicorn = web server
+    # - api.main:app = module `api/main.py`, object `app`
+    # - --host 0.0.0.0 = listen on all network interfaces
+    # - --port 8000 = on port 8000
+    # - --reload = restart when code changes
+    
+    # Wait for database before starting API
+    depends_on:
+      - db
+    
+  # Service 2: SQLite database (optional, mainly for persistence)
+  db:
+    image: sqlite:latest
+    volumes:
+      - ./db:/data
+```
+
+**In simple terms:**
+- `api` service: FastAPI container
+- `db` service: Database storage
+- When you run `docker-compose up`, it:
+  1. Builds the image from `Dockerfile`
+  2. Starts the `db` container
+  3. Starts the `api` container on port 8000
+  4. Maps your code folder → `/app` in container (live reload)
+  5. Maps `./db` folder → persistent database storage
+
+---
+
+### Step 4: Create folder structure (5 min)
+
+Create these folders if they don't exist:
+
+```bash
+# From root of project
+mkdir -p api
+mkdir -p engine
+mkdir -p contracts
+mkdir -p data
+mkdir -p db
+mkdir -p sim
+mkdir -p fed
+mkdir -p node
+```
+
+**Why:**
+- `api/` = FastAPI code (where you'll put `main.py`)
+- `engine/` = Risk scoring engine
+- `contracts/` = Event schema (we'll create this)
+- `data/` = Downloaded datasets (roads, population, etc.)
+- `db/` = SQLite database files (persistent)
+
+---
+
+### Step 5: Create `api/__init__.py` (2 min)
+
+**File location:** `api/__init__.py` (tells Python that `api/` is a package)
+
+```python
+# Empty file - just marks this folder as a Python package
+```
+
+---
+
+### Step 6: Create `engine/__init__.py` (1 min)
+
+**File location:** `engine/__init__.py`
+
+```python
+# Empty file - marks this folder as a Python package
+```
+
+---
+
+### Step 7: Create `contracts/__init__.py` (1 min)
+
+**File location:** `contracts/__init__.py`
+
+```python
+# Empty file - marks this folder as a Python package
+```
+
+---
+
+### Step 8: Test the setup (10 min)
+
+**Before running Docker, verify files exist:**
+
+```bash
+# List files in root
+dir
+
+# Should see:
+# - docker-compose.yml
+# - Dockerfile
+# - requirements.txt
+# - api/ (folder)
+# - engine/ (folder)
+# - contracts/ (folder)
+# - data/ (folder)
+# - db/ (folder)
+```
+
+**Build the Docker image:**
+
+```bash
+# From root of project
+docker-compose build
+
+# Output should look like:
+# Building api
+# Step 1/7 : FROM python:3.10-slim
+# Step 2/7 : WORKDIR /app
+# ...
+# Successfully tagged urbanpulse_api:latest
+```
+
+**Run the containers:**
+
 ```bash
 docker-compose up
-# Should see FastAPI starting on http://localhost:8000
-# Ctrl+C to stop
+
+# Output should look like:
+# Creating db ... done
+# Creating api ... done
+# api_1  | INFO:     Started server process [1]
+# api_1  | INFO:     Uvicorn running on http://0.0.0.0:8000
+# api_1  | INFO:     Application startup complete
 ```
+
+**Test if it's working (in a NEW terminal/tab):**
+
+```bash
+# Test health endpoint
+curl http://localhost:8000/health
+
+# Should return:
+# {"status":"ok","version":"1.0.0"}
+```
+
+**Stop containers:**
+
+```bash
+# In the original terminal where docker-compose up is running
+# Press Ctrl+C
+
+# Or in a new terminal:
+docker-compose down
+```
+
+---
+
+### Step 9: Understand the flow (5 min)
+
+**When you run `docker-compose up`:**
+
+1. **Build phase:**
+   - Docker reads `Dockerfile`
+   - Creates a Docker image with Python 3.10 + all packages from `requirements.txt`
+
+2. **Run phase:**
+   - Starts `db` container (SQLite storage)
+   - Starts `api` container with your code
+   - Maps `port 8000` (your computer) → `port 8000` (container)
+   - Maps `./db` folder → persistent database storage
+   - Runs: `uvicorn api.main:app --reload`
+
+3. **Live reload:**
+   - You edit `api/main.py` on your computer
+   - Container detects the change (because of volume mount)
+   - FastAPI automatically restarts
+   - No need to rebuild the container
+
+4. **Access:**
+   - Open browser: `http://localhost:8000`
+   - Or use curl: `curl http://localhost:8000/health`
+
+---
+
+### Common errors & solutions:
+
+**Error: "docker-compose: command not found"**
+- Solution: Install Docker Desktop (includes docker-compose)
+- https://www.docker.com/products/docker-desktop
+
+**Error: "Port 8000 is already in use"**
+- Solution: Change port in `docker-compose.yml` → `"8001:8000"`
+- Or: Stop the service using port 8000
+
+**Error: "Cannot find requirements.txt"**
+- Solution: Verify `requirements.txt` is in the root folder (same level as Dockerfile)
+
+**Error: "Module 'api' not found"**
+- Solution: Create `api/__init__.py` (empty file)
+
+---
+
+### Files to create (checklist):
+
+- [ ] `Dockerfile` (root)
+- [ ] `requirements.txt` (root)
+- [ ] `docker-compose.yml` (root)
+- [ ] `api/__init__.py`
+- [ ] `engine/__init__.py`
+- [ ] `contracts/__init__.py`
+- [ ] Folders: `db/`, `data/`, `sim/`, `fed/`, `node/` (created)
+
+Once done → Move to **A0.3: event_schema.py (BLOCKER)**
 
 ---
 
