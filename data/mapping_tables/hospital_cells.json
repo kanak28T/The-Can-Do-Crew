@@ -1,0 +1,10 @@
+{
+  "_comment": "Hospital → its H3 res-9 cell. One-to-one from OSM amenity=hospital Nagpur.",
+  "mayo_hospital":       "890c1d2cf37ffff",
+  "gmch_nagpur":         "890c1d2cf33ffff",
+  "nmc_hospital":        "890c1d28003ffff",
+  "orange_city_hospital":"890c1d28017ffff",
+  "lata_mangeshkar":     "890c1d2802bffff",
+  "care_hospital":       "890c1d28043ffff",
+  "wockhardt_nagpur":    "890c1d28053ffff"
+}

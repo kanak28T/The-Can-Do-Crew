@@ -1,0 +1,23 @@
+{
+  "_comment": "Feeder → H3 res-9 cells mapping. Authored manually from MSEDCL zone reports.",
+  "F01": ["890c1d28003ffff","890c1d28007ffff","890c1d2800bffff","890c1d2800fffff","890c1d28013ffff"],
+  "F02": ["890c1d28017ffff","890c1d2801bffff","890c1d2801fffff","890c1d28023ffff","890c1d28027ffff"],
+  "F03": ["890c1d2802bffff","890c1d2802fffff","890c1d28033ffff","890c1d28037ffff","890c1d2803bffff"],
+  "F04": ["890c1d2803fffff","890c1d28043ffff","890c1d28047ffff","890c1d2804bffff","890c1d2804fffff"],
+  "F05": ["890c1d28053ffff","890c1d28057ffff","890c1d2805bffff","890c1d2805fffff","890c1d28063ffff"],
+  "F06": ["890c1d28067ffff","890c1d2806bffff","890c1d2806fffff","890c1d28073ffff","890c1d28077ffff"],
+  "F07": ["890c1d2807bffff","890c1d2807fffff","890c1d28083ffff","890c1d28087ffff","890c1d2808bffff"],
+  "F08": ["890c1d2808fffff","890c1d28093ffff","890c1d28097ffff","890c1d2809bffff","890c1d2809fffff"],
+  "F09": ["890c1d280a3ffff","890c1d280a7ffff","890c1d280abffff","890c1d280afffff","890c1d280b3ffff"],
+  "F10": ["890c1d280b7ffff","890c1d280bbffff","890c1d280bfffff","890c1d280c3ffff","890c1d280c7ffff"],
+  "F11": ["890c1d280cbffff","890c1d280cfffff","890c1d280d3ffff","890c1d280d7ffff","890c1d280dbffff"],
+  "F12": ["890c1d2cf37ffff","890c1d2cf2fffff","890c1d2cf33ffff","890c1d2cf3bffff","890c1d2cf3fffff"],
+  "F13": ["890c1d2cf43ffff","890c1d2cf47ffff","890c1d2cf4bffff","890c1d2cf4fffff","890c1d2cf53ffff"],
+  "F14": ["890c1d2cf57ffff","890c1d2cf5bffff","890c1d2cf5fffff","890c1d2cf63ffff","890c1d2cf67ffff"],
+  "F15": ["890c1d2cf6bffff","890c1d2cf6fffff","890c1d2cf73ffff","890c1d2cf77ffff","890c1d2cf7bffff"],
+  "F16": ["890c1d2cf7fffff","890c1d2cf83ffff","890c1d2cf87ffff","890c1d2cf8bffff","890c1d2cf8fffff"],
+  "F17": ["890c1d2cf93ffff","890c1d2cf97ffff","890c1d2cf9bffff","890c1d2cf9fffff","890c1d2cfa3ffff"],
+  "F18": ["890c1d2cfa7ffff","890c1d2cfabffff","890c1d2cfafffff","890c1d2cfb3ffff","890c1d2cfb7ffff"],
+  "F19": ["890c1d2cfbbffff","890c1d2cfbfffff","890c1d2cfc3ffff","890c1d2cfc7ffff","890c1d2cfcbffff"],
+  "F20": ["890c1d2cfcfffff","890c1d2cfd3ffff","890c1d2cfd7ffff","890c1d2cfdbffff","890c1d2cfdfffff"]
+}

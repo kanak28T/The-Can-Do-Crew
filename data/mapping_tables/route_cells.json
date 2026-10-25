@@ -1,0 +1,15 @@
+{
+  "_comment": "Bus route → H3 res-9 cells. Authored from OSM transit + Nagpur MSRTC route map.",
+  "route_1":  ["890c1d28003ffff","890c1d28007ffff","890c1d2800bffff","890c1d2800fffff"],
+  "route_2":  ["890c1d28013ffff","890c1d28017ffff","890c1d2801bffff","890c1d2801fffff"],
+  "route_3":  ["890c1d28023ffff","890c1d28027ffff","890c1d2802bffff","890c1d2802fffff"],
+  "route_4":  ["890c1d2cf37ffff","890c1d2cf2fffff","890c1d2cf33ffff","890c1d2cf3bffff","890c1d2cf3fffff"],
+  "route_5":  ["890c1d28033ffff","890c1d28037ffff","890c1d2803bffff","890c1d2803fffff"],
+  "route_6":  ["890c1d28043ffff","890c1d28047ffff","890c1d2804bffff","890c1d2804fffff"],
+  "route_7":  ["890c1d28053ffff","890c1d28057ffff","890c1d2805bffff","890c1d2805fffff"],
+  "route_8":  ["890c1d28063ffff","890c1d28067ffff","890c1d2806bffff","890c1d2806fffff"],
+  "route_9":  ["890c1d28073ffff","890c1d28077ffff","890c1d2807bffff","890c1d2807fffff"],
+  "route_10": ["890c1d28083ffff","890c1d28087ffff","890c1d2808bffff","890c1d2808fffff"],
+  "route_11": ["890c1d28093ffff","890c1d28097ffff","890c1d2809bffff","890c1d2809fffff"],
+  "route_12": ["890c1d280a3ffff","890c1d280a7ffff","890c1d280abffff","890c1d280afffff"]
+}

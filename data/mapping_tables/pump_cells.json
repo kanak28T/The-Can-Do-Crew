@@ -1,0 +1,11 @@
+{
+  "_comment": "Pump zone → H3 cells. Pump depends on feeder (see dependency graph in sim/water_sim.py).",
+  "pump_P01": {"feeder": "F01", "cells": ["890c1d28003ffff","890c1d28007ffff","890c1d2800bffff"]},
+  "pump_P02": {"feeder": "F02", "cells": ["890c1d28017ffff","890c1d2801bffff","890c1d2801fffff"]},
+  "pump_P03": {"feeder": "F03", "cells": ["890c1d2802bffff","890c1d2802fffff","890c1d28033ffff"]},
+  "pump_P04": {"feeder": "F04", "cells": ["890c1d28043ffff","890c1d28047ffff","890c1d2804bffff"]},
+  "pump_P05": {"feeder": "F05", "cells": ["890c1d28053ffff","890c1d28057ffff","890c1d2805bffff"]},
+  "pump_P06": {"feeder": "F12", "cells": ["890c1d2cf37ffff","890c1d2cf2fffff","890c1d2cf33ffff"]},
+  "pump_P07": {"feeder": "F13", "cells": ["890c1d2cf43ffff","890c1d2cf47ffff","890c1d2cf4bffff"]},
+  "pump_P08": {"feeder": "F14", "cells": ["890c1d2cf57ffff","890c1d2cf5bffff","890c1d2cf5fffff"]}
+}

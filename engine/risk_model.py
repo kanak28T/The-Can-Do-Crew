@@ -1,34 +1,42 @@
 """
-Logistic vulnerability risk model.
-z = b0 + Σ(β_k · x_k) + Σ(γ_jk · x_j · x_k) + δ · baseline
-p = sigmoid(z)
+UrbanPulse — Logistic Vulnerability Risk Model
+================================================
+Owner  : Kanak (A2) — Day 2
 
-All β and γ ≥ 0 (D6 — locked).
-Phase 1: hand-set coefficients. Phase 6: fitted by FedAvg.
+Formula (plan D6):
+    z = bias + Σ(beta_k * x_k) + Σ(gamma_jk * x_j * x_k) + delta * baseline_score
+    p = sigmoid(z)
+
+Constraints: all beta and gamma >= 0 (non-negative coefficients).
+
+Coefficients are hand-set seeds here.
+Phase 6 (Day 4): FedAvg fits them on training scenario families A–C.
 """
 
 import math
 from dataclasses import dataclass, field
-from typing import Dict, Tuple
 
-# ── Hand-set seed coefficients ─────────────────────────────────────────────────
-DEFAULT_BETA: Dict[str, float] = {
-    "hospital_isolation": 0.50,
-    "transit_loss":       0.30,
-    "power_stress":       0.60,
-    "water_loss":         0.40,
-    "comms_loss":         0.20,
-    "road_stress":        0.35,
+
+# ── Hand-set seed coefficients (plan D6) ──────────────────────────────────────
+# These are starting points. Sensitivity: perturb ±25% × 1000 draws on Day 4.
+
+DEFAULT_BETA: dict[str, float] = {
+    "hospital_isolation": 0.50,   # most impactful — isolation from care
+    "power_stress":       0.60,   # grid failure drives cascades
+    "water_loss":         0.40,   # pump failure compounds power outage
+    "transit_loss":       0.30,   # cuts evacuation routes
+    "road_stress":        0.35,   # road closure → isolation index
+    "comms_loss":         0.20,   # warning dead zone
 }
 
-DEFAULT_GAMMA: Dict[Tuple[str, str], float] = {
-    ("power_stress",  "water_loss"):         0.20,   # feeder → pump cascade
-    ("road_stress",   "transit_loss"):       0.15,   # closure × transit
-    ("comms_loss",    "hospital_isolation"): 0.10,   # dead zone × isolation
+DEFAULT_GAMMA: dict[tuple[str, str], float] = {
+    ("power_stress",  "water_loss"):         0.20,  # feeder → pump cascade
+    ("road_stress",   "transit_loss"):       0.15,  # closure × route suspension
+    ("comms_loss",    "hospital_isolation"): 0.10,  # dead zone + no care access
 }
 
-DEFAULT_DELTA = 0.30    # baseline feature weight
-DEFAULT_BIAS  = -1.20   # intercept (most cells start Low)
+DEFAULT_DELTA = 0.30   # weight of static baseline features
+DEFAULT_BIAS  = -1.20  # intercept — keeps most cells Low at baseline
 
 # Risk label thresholds
 HIGH_THRESHOLD   = 0.65
@@ -36,51 +44,81 @@ MEDIUM_THRESHOLD = 0.40
 
 
 def sigmoid(z: float) -> float:
-    # Clamp to avoid overflow
+    # Clamp to prevent overflow on extreme z values
     z = max(-500.0, min(500.0, z))
     return 1.0 / (1.0 + math.exp(-z))
 
 
 @dataclass
 class RiskModel:
-    beta:  Dict[str, float]             = field(default_factory=lambda: dict(DEFAULT_BETA))
-    gamma: Dict[Tuple[str, str], float] = field(default_factory=lambda: dict(DEFAULT_GAMMA))
-    delta: float = DEFAULT_DELTA
-    bias:  float = DEFAULT_BIAS
+    """
+    Logistic risk model. One global instance shared across all cells.
+    Updated by FedAvg trainer (fed/fedavg.py) on Day 4.
+    """
+    beta:  dict[str, float]              = field(default_factory=lambda: dict(DEFAULT_BETA))
+    gamma: dict[tuple[str, str], float]  = field(default_factory=lambda: dict(DEFAULT_GAMMA))
+    delta: float                          = DEFAULT_DELTA
+    bias:  float                          = DEFAULT_BIAS
 
-    def _build_x(self, domain_stress: Dict[str, float], baseline: Dict[str, float]) -> Dict[str, float]:
-        """Map domain stresses + baseline to model input features."""
-        x = {
-            "hospital_isolation": min(1.0, domain_stress.get("health", 0.0)   + baseline.get("hospital_isolation", 0.0) * 0.5),
-            "transit_loss":       min(1.0, domain_stress.get("transit", 0.0)  + baseline.get("transit_deficit",    0.0) * 0.3),
-            "power_stress":       domain_stress.get("power",   0.0),
-            "water_loss":         domain_stress.get("water",   0.0),
-            "comms_loss":         domain_stress.get("comms",   0.0),
-            "road_stress":        domain_stress.get("road",    0.0),
-        }
-        return {k: max(0.0, min(1.0, v)) for k, v in x.items()}
+    # Domain name → model input name mapping
+    _DOMAIN_TO_INPUT: dict[str, str] = field(default_factory=lambda: {
+        "health":   "hospital_isolation",
+        "transit":  "transit_loss",
+        "power":    "power_stress",
+        "water":    "water_loss",
+        "comms":    "comms_loss",
+        "road":     "road_stress",
+    }, repr=False)
+
+    def _build_inputs(
+        self,
+        domain_stress: dict[str, float],
+        baseline: dict[str, float],
+    ) -> dict[str, float]:
+        """Combine live domain stress with baseline features into model inputs."""
+        x: dict[str, float] = {}
+        for domain, input_name in self._DOMAIN_TO_INPUT.items():
+            live = domain_stress.get(domain, 0.0)
+            # Baseline contributes a fraction; live stress is the main signal
+            base_key = {
+                "hospital_isolation": "hospital_isolation",
+                "transit_loss":       "transit_deficit",
+            }.get(input_name)
+            base = baseline.get(base_key, 0.0) * 0.3 if base_key else 0.0
+            x[input_name] = max(0.0, min(1.0, live + base))
+        return x
 
     def score(
         self,
-        domain_stress: Dict[str, float],
-        baseline: Dict[str, float],
-    ) -> Tuple[float, str]:
+        domain_stress: dict[str, float],
+        baseline: dict[str, float],
+    ) -> tuple[float, str]:
         """
-        Returns (p, label).
-        p in [0,1]; label in {low, medium, high}
+        Compute risk score for one cell.
+
+        Args:
+            domain_stress : {domain: stress_0_to_1}  e.g. {"power": 0.8}
+            baseline      : {feature: value_0_to_1}  from BaselineFeatures.to_dict()
+
+        Returns:
+            (p, label) where p in [0,1] and label in {"low","medium","high"}
         """
-        x = self._build_x(domain_stress, baseline)
+        x = self._build_inputs(domain_stress, baseline)
 
         z = self.bias
-        for k, v in x.items():
-            z += self.beta.get(k, 0.0) * v
 
+        # Linear terms
+        for name, val in x.items():
+            z += self.beta.get(name, 0.0) * val
+
+        # Interaction terms
         for (j, k), g in self.gamma.items():
             z += g * x.get(j, 0.0) * x.get(k, 0.0)
 
+        # Baseline term: grid failure rate + economic constraint
         baseline_score = (
-            baseline.get("grid_failure_rate", 0.0) +
-            baseline.get("economic_constraint", 0.0)
+            baseline.get("grid_failure_rate", 0.0)
+            + baseline.get("economic_constraint", 0.0)
         ) / 2.0
         z += self.delta * baseline_score
 
@@ -90,65 +128,70 @@ class RiskModel:
 
     def bootstrap_interval(
         self,
-        domain_stress: Dict[str, float],
-        baseline: Dict[str, float],
+        domain_stress: dict[str, float],
+        baseline: dict[str, float],
         n: int = 200,
         perturb: float = 0.25,
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """
-        Approximate 90% CI by perturbing coefficients ±25%.
-        Fast version: perturb once, report (min, max) across n draws.
+        Approximate 90% confidence interval by perturbing coefficients ±25%.
+        Used for the risk interval shown in the UI (plan section 5).
+        Fast: n=200 draws, report 5th/95th percentile.
+        Phase 7: replace with proper bootstrap on scenario seeds.
         """
         import random
-        scores = []
-        orig_beta = dict(self.beta)
+        orig_beta  = dict(self.beta)
         orig_gamma = dict(self.gamma)
+        scores = []
         for _ in range(n):
-            self.beta  = {k: max(0.0, v * (1 + random.uniform(-perturb, perturb))) for k, v in orig_beta.items()}
-            self.gamma = {k: max(0.0, v * (1 + random.uniform(-perturb, perturb))) for k, v in orig_gamma.items()}
+            self.beta  = {k: max(0.0, v * (1 + random.uniform(-perturb, perturb)))
+                          for k, v in orig_beta.items()}
+            self.gamma = {k: max(0.0, v * (1 + random.uniform(-perturb, perturb)))
+                          for k, v in orig_gamma.items()}
             p, _ = self.score(domain_stress, baseline)
             scores.append(p)
         self.beta  = orig_beta
         self.gamma = orig_gamma
         scores.sort()
-        lo = scores[int(0.05 * n)]
-        hi = scores[int(0.95 * n)]
-        return round(lo, 3), round(hi, 3)
+        return round(scores[int(0.05 * n)], 3), round(scores[int(0.95 * n)], 3)
 
     def driver_contributions(
         self,
-        domain_stress: Dict[str, float],
-        baseline: Dict[str, float],
-    ) -> Dict[str, float]:
+        domain_stress: dict[str, float],
+        baseline: dict[str, float],
+    ) -> dict[str, float]:
         """
-        Counterfactual: set each driver to 0, re-score, report risk drop.
-        Returns {driver: -drop} sorted by magnitude.
+        Exact counterfactual driver contributions (plan D7).
+        For each driver: set it to zero, re-score, report the risk drop.
+
+        Returns:
+            {driver_name: risk_drop}  sorted by magnitude descending.
+            Only drivers with drop > 0.01 are returned.
         """
         base_p, _ = self.score(domain_stress, baseline)
-        domain_map = {
-            "hospital_isolation": "health",
-            "transit_loss":  "transit",
-            "power_stress":  "power",
-            "water_loss":    "water",
-            "comms_loss":    "comms",
-            "road_stress":   "road",
-        }
-        contributions = {}
-        for driver in list(self.beta.keys()) + ["baseline"]:
-            ms = dict(domain_stress)
-            mb = dict(baseline)
-            if driver == "baseline":
-                mb = {k: 0.0 for k in mb}
-            else:
-                d = domain_map.get(driver)
-                if d:
-                    ms[d] = 0.0
-            cf_p, _ = self.score(ms, mb)
+        contributions: dict[str, float] = {}
+
+        # Per-domain drivers
+        domain_map = {v: k for k, v in self._DOMAIN_TO_INPUT.items()}
+        for input_name in self.beta:
+            domain = domain_map.get(input_name)
+            if not domain:
+                continue
+            modified = dict(domain_stress)
+            modified[domain] = 0.0
+            cf_p, _ = self.score(modified, baseline)
             drop = round(base_p - cf_p, 4)
-            if drop > 0.005:
-                contributions[driver] = round(-drop, 4)
-        return dict(sorted(contributions.items(), key=lambda x: x[1]))
+            if drop > 0.01:
+                contributions[input_name] = drop
+
+        # Baseline driver (grid history + economic constraint)
+        cf_p, _ = self.score(domain_stress, {})
+        drop = round(base_p - cf_p, 4)
+        if drop > 0.01:
+            contributions["baseline"] = drop
+
+        return dict(sorted(contributions.items(), key=lambda kv: kv[1], reverse=True))
 
 
-# Global singleton — shared across all requests; updated by FedAvg in Phase 6
+# ── Global model instance (updated by FedAvg trainer on Day 4) ────────────────
 MODEL = RiskModel()
