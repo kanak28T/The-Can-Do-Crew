@@ -68,6 +68,7 @@ export default function DispatchLog() {
   const updateDispatchStatus = useAppStore((s) => s.updateDispatchStatus);
 
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState<string>('');
 
   useEffect(() => {
     api.getDispatch()
@@ -85,9 +86,10 @@ export default function DispatchLog() {
       });
   }, []);
 
-  const handleApprove = async (id: string) => {
+  const handleApprove = async (id: string, zone: string, action: string) => {
     setLoadingActionId(id);
     updateDispatchStatus(id, 'approved');
+    setAnnouncement(`Approved emergency intervention for ${zone}: ${action}`);
     try {
       await api.approveDispatch(id);
     } catch (err) {
@@ -97,9 +99,10 @@ export default function DispatchLog() {
     }
   };
 
-  const handleReject = async (id: string) => {
+  const handleReject = async (id: string, zone: string, action: string) => {
     setLoadingActionId(id);
     updateDispatchStatus(id, 'rejected');
+    setAnnouncement(`Rejected emergency intervention for ${zone}: ${action}`);
     try {
       await api.rejectDispatch(id);
     } catch (err) {
@@ -137,20 +140,28 @@ export default function DispatchLog() {
   };
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="overflow-x-auto flex-1 rounded border border-[var(--color-border)] bg-[var(--color-page)]/40">
-        <table className="w-full text-left text-xs border-collapse">
+    <div className="h-full flex flex-col" role="region" aria-label="Dispatch Log View">
+      {/* Visually hidden screen reader announcements */}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {announcement}
+      </div>
+
+      <div className="overflow-x-auto flex-1 rounded border border-[var(--color-border)] bg-[var(--color-page)]/40 focus:outline-none focus:ring-1 focus:ring-blue-500" tabIndex={0} aria-label="Scrollable dispatch table container">
+        <table className="w-full text-left text-xs border-collapse" aria-label="Municipal Emergency Dispatch Recommendations">
+          <caption className="sr-only">
+            Active list of municipal emergency interventions, priority levels, trigger telemetry, projected risk reduction, and operator decision controls.
+          </caption>
           <thead className="bg-[var(--color-raised)] text-[var(--color-secondary)] uppercase font-semibold sticky top-0 z-10 border-b border-[var(--color-border)]">
             <tr>
-              <th className="py-2.5 px-3">Priority</th>
-              <th className="py-2.5 px-3">Zone</th>
-              <th className="py-2.5 px-3">Recommended Intervention</th>
-              <th className="py-2.5 px-3">Resource</th>
-              <th className="py-2.5 px-3">Trigger / Evidence</th>
-              <th className="py-2.5 px-3">Expected &Delta;z</th>
-              <th className="py-2.5 px-3">ETA</th>
-              <th className="py-2.5 px-3">Status</th>
-              <th className="py-2.5 px-3 text-right">Decision</th>
+              <th scope="col" className="py-2.5 px-3">Priority</th>
+              <th scope="col" className="py-2.5 px-3">Zone</th>
+              <th scope="col" className="py-2.5 px-3">Recommended Intervention</th>
+              <th scope="col" className="py-2.5 px-3">Resource</th>
+              <th scope="col" className="py-2.5 px-3">Trigger / Evidence</th>
+              <th scope="col" className="py-2.5 px-3">Expected &Delta;z</th>
+              <th scope="col" className="py-2.5 px-3">ETA</th>
+              <th scope="col" className="py-2.5 px-3">Status</th>
+              <th scope="col" className="py-2.5 px-3 text-right">Decision</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--color-border)]">
@@ -161,16 +172,18 @@ export default function DispatchLog() {
               >
                 <td className="py-2 px-3 whitespace-nowrap">
                   <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${getPriorityBadge(d.priority)}`}>
+                    <span className="sr-only">Priority level: </span>
                     {d.priority}
                   </span>
                 </td>
-                <td className="py-2 px-3 font-medium whitespace-nowrap text-[var(--color-text)]">
+                <th scope="row" className="py-2 px-3 font-medium whitespace-nowrap text-[var(--color-text)] text-left">
                   {d.zone}
-                </td>
+                </th>
                 <td className="py-2 px-3 text-[var(--color-text)] min-w-[200px]">
                   {d.action}
                 </td>
                 <td className="py-2 px-3 whitespace-nowrap font-mono text-[11px] text-[var(--color-secondary)]">
+                  <span className="sr-only">Assigned resource: </span>
                   {d.resource}
                 </td>
                 <td className="py-2 px-3 text-[11px] text-[var(--color-muted)] max-w-[220px] truncate" title={d.trigger}>
@@ -181,34 +194,39 @@ export default function DispatchLog() {
                     -{Math.round(d.expected_risk_drop * 100)}%
                   </span>
                   <span className="text-[10px] text-[var(--color-muted)] ml-1">
+                    <span className="sr-only">Projected risk after intervention: </span>
                     ({Math.round(d.risk_after * 100)}% CI [{Math.round(d.lo * 100)}-{Math.round(d.hi * 100)}])
                   </span>
                 </td>
                 <td className="py-2 px-3 whitespace-nowrap text-[11px] text-[var(--color-secondary)]">
+                  <span className="sr-only">Estimated arrival time: </span>
                   {d.eta}
                 </td>
                 <td className="py-2 px-3 whitespace-nowrap">
                   <span className={`px-2 py-0.5 rounded text-[11px] font-medium capitalize ${getStatusBadge(d.status)}`}>
+                    <span className="sr-only">Current status: </span>
                     {d.status}
                   </span>
                 </td>
                 <td className="py-2 px-3 text-right whitespace-nowrap">
-                  <div className="flex items-center justify-end gap-1.5">
+                  <div className="flex items-center justify-end gap-1.5" role="group" aria-label={`Actions for dispatch ${d.id}`}>
                     {d.status === 'proposed' ? (
                       <>
                         <button
                           type="button"
                           disabled={loadingActionId === d.id}
-                          onClick={() => handleApprove(d.id)}
-                          className="px-2.5 py-1 text-xs font-semibold rounded bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition-all disabled:opacity-50"
+                          onClick={() => handleApprove(d.id, d.zone, d.action)}
+                          aria-label={`Approve dispatch for ${d.zone}: ${d.action}`}
+                          className="px-2.5 py-1 text-xs font-semibold rounded bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition-all disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-emerald-400"
                         >
                           ✓ Approve
                         </button>
                         <button
                           type="button"
                           disabled={loadingActionId === d.id}
-                          onClick={() => handleReject(d.id)}
-                          className="px-2.5 py-1 text-xs font-semibold rounded bg-rose-600/80 hover:bg-rose-500 text-white shadow-sm transition-all disabled:opacity-50"
+                          onClick={() => handleReject(d.id, d.zone, d.action)}
+                          aria-label={`Reject dispatch for ${d.zone}: ${d.action}`}
+                          className="px-2.5 py-1 text-xs font-semibold rounded bg-rose-600/80 hover:bg-rose-500 text-white shadow-sm transition-all disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-rose-400"
                         >
                           ✕ Reject
                         </button>
@@ -216,8 +234,12 @@ export default function DispatchLog() {
                     ) : (
                       <button
                         type="button"
-                        onClick={() => updateDispatchStatus(d.id, 'proposed')}
-                        className="text-[11px] text-[var(--color-muted)] hover:text-[var(--color-text)] underline transition-colors"
+                        onClick={() => {
+                          updateDispatchStatus(d.id, 'proposed');
+                          setAnnouncement(`Reset status to proposed for ${d.zone}`);
+                        }}
+                        aria-label={`Reset status to proposed for ${d.zone}`}
+                        className="text-[11px] text-[var(--color-muted)] hover:text-[var(--color-text)] underline transition-colors focus:outline-none focus:ring-1 focus:ring-blue-500 rounded px-1"
                       >
                         Reset
                       </button>
