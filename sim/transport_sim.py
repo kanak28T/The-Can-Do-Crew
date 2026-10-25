@@ -121,6 +121,27 @@ def generate_event(
     return event, raw_text
 
 
+def event_generator(
+    route_map: Optional[Dict[str, List[str]]] = None,
+    burst: int = 0,
+    scenario: Optional[str] = None
+):
+    """
+    Generator function outputting (CanonicalEvent, messy_text) tuples.
+    Produces canonical events formatted according to contracts/event_schema.py.
+    """
+    if route_map is None:
+        route_map = load_route_mappings()
+
+    count = 0
+    while True:
+        event, raw_text = generate_event(route_map, scenario)
+        count += 1
+        yield event, raw_text
+        if burst > 0 and count >= burst:
+            break
+
+
 def send_to_output(
     payload: dict,
     output_dest: str
