@@ -1,20 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color-scheme: dark;
-  color: #f3f4f6;
-  background-color: #030712;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --color-page: #F8F9FA;
+  --color-surface: #FFFFFF;
+  --color-raised: #F1F3F5;
+  --color-border: #DEE2E6;
+  --color-text: #212529;
+  --color-secondary: #495057;
+  --color-muted: #6C757D;
+  --color-accent: #0D6EFD;
+  --color-low: #198754;
+  --color-watch: #FFC107;
+  --color-high: #DC3545;
+  --color-unknown: #6C757D;
 }
 
-body {
-  margin: 0;
-  padding: 0;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+:root.dark {
+  --color-page: #0F1720;
+  --color-surface: #151F2B;
+  --color-raised: #1B2735;
+  --color-border: #2A3849;
+  --color-text: #E6EDF3;
+  --color-secondary: #9FB0C0;
+  --color-muted: #7F90A3;
+  --color-accent: #6CA6E0;
+  --color-low: #5FA8A0;
+  --color-watch: #E3B341;
+  --color-high: #E8704F;
+  --color-unknown: #8A97A6;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  
+  body {
+    background-image: url('https://images.unsplash.com/photo-1570168007204-dfb528c6958f?w=2400&q=80');
+    background-attachment: fixed;
+    background-size: cover;
+    background-position: center;
+  }
+  
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(rgba(248, 249, 250, 0.85), rgba(248, 249, 250, 0.92));
+    z-index: -1;
+  }
+  
+  html, body, #root {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    color: var(--color-text);
+    font-family: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+  }
+  button {
+    font-family: inherit;
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  .panel-surface {
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+  .panel-raised {
+    background-color: var(--color-raised);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+  }
+  .panel-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+  .text-secondary {
+    color: var(--color-secondary);
+    font-size: 12.5px;
+  }
+  .text-muted {
+    color: var(--color-muted);
+    font-size: 12.5px;
+  }
+  .text-big {
+    font-size: 28px;
+    font-weight: 600;
+  }
 }
