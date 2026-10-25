@@ -4,7 +4,10 @@ import Map from './components/Map';
 import initialMockData from './data/mock_cells.json';
 import './App.css';
 
-const SSE_URL = 'http://localhost:8000/sse/events';
+// API base URL — set VITE_API_URL in .env for deployment (Day 4)
+// Default: localhost:8000 for local dev
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const SSE_URL = `${API_BASE}/sse/events`;
 
 export default function App() {
   const [geojsonData, setGeojsonData] = useState(initialMockData);
