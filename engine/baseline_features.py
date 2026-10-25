@@ -17,7 +17,6 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Union
 
 DATA_DIR = Path(__file__).parent.parent / "data"
 
@@ -42,27 +41,25 @@ class BaselineFeatures:
         }
 
 
-def _load_json(path: Union[str, Path]) -> dict:
-    p = Path(path)
-    if p.exists():
-        with open(p, encoding="utf-8") as f:
+def _load_json(path: Path) -> dict:
+    if path.exists():
+        with open(path) as f:
             return json.load(f)
     return {}
 
 
 def load_baseline_features(
-    grid_path: Union[str, Path] = DATA_DIR / "nagpur_h3_res9.geojson",
+    grid_path: Path = DATA_DIR / "nagpur_h3_res9.geojson",
 ) -> dict[str, BaselineFeatures]:
     """
     Load baseline features for every cell in the H3 grid.
     Returns {h3_cell: BaselineFeatures}.
     """
-    p = Path(grid_path)
-    if not p.exists():
-        print(f"[warn] {p} not found — no baseline features loaded.")
+    if not Path(grid_path).exists():
+        print(f"[warn] {grid_path} not found — no baseline features loaded.")
         return {}
 
-    with open(p, encoding="utf-8") as f:
+    with open(Path(grid_path)) as f:
         grid = json.load(f)
     cells = [feat["properties"]["cell"] for feat in grid["features"]]
 

@@ -5,7 +5,7 @@ from typing import List
 
 with open("data/mapping_tables/tower_cells.json") as f:
     TOWER_CELLS: dict = json.load(f)
-TOWERS = [k for k in TOWER_CELLS if not k.startswith("_") and TOWER_CELLS[k]]
+TOWERS = [k for k in TOWER_CELLS if not k.startswith("_")]
 
 
 def _event(domain, event_type, entity_id, h3_cell, severity, source_type, scenario_tag=None):
@@ -15,10 +15,10 @@ def _event(domain, event_type, entity_id, h3_cell, severity, source_type, scenar
         "domain": domain,
         "event_type": event_type,
         "entity_id": entity_id,
-        "h3_cell": h3_cell,
+        "cell": h3_cell,
         "severity": round(severity, 3),
         "source_type": source_type,
-        "source_reliability": {"official": 0.9, "sensor": 0.7, "crowd": 0.5, "anonymous": 0.3}[source_type],
+        "source_reliability": {"official": 0.9, "sensor": 0.7, "crowdsourced": 0.5, "anonymous": 0.3}[source_type],
         "event_timestamp": now.isoformat(),
         "ingestion_timestamp": now.isoformat(),
         "parse_confidence": 1.0,
@@ -46,7 +46,7 @@ def network_congestion(tower_id: str = None, severity: float = None, scenario_ta
     tower = tower_id or random.choice(TOWERS)
     sev = severity if severity is not None else random.uniform(0.5, 0.8)
     cells = TOWER_CELLS.get(tower, [])
-    return [_event("comms", "network_congestion", tower, cell, sev, "crowd", scenario_tag) for cell in cells]
+    return [_event("comms", "network_congestion", tower, cell, sev, ("crowdsourced"), scenario_tag) for cell in cells]
 
 
 def tower_maintenance(tower_id: str = None, severity: float = None, scenario_tag=None) -> List[dict]:

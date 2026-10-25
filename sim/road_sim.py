@@ -17,10 +17,10 @@ def _event(domain, event_type, entity_id, h3_cell, severity, source_type, scenar
         "domain": domain,
         "event_type": event_type,
         "entity_id": entity_id,
-        "h3_cell": h3_cell,
+        "cell": h3_cell,
         "severity": round(severity, 3),
         "source_type": source_type,
-        "source_reliability": {"official": 0.9, "sensor": 0.7, "crowd": 0.5, "anonymous": 0.3}[source_type],
+        "source_reliability": {"official": 0.9, "sensor": 0.7, "crowdsourced": 0.5, "anonymous": 0.3}[source_type],
         "event_timestamp": now.isoformat(),
         "ingestion_timestamp": now.isoformat(),
         "parse_confidence": 1.0,
@@ -41,7 +41,7 @@ def accident_reported(cell: str = None, severity: float = None, scenario_tag=Non
     cell = cell or random.choice(ALL_CELLS)
     sev = severity if severity is not None else random.uniform(0.5, 0.9)
     entity_id = f"accident-{cell}"
-    return [_event("road", "accident", entity_id, cell, sev, "crowd", scenario_tag)]
+    return [_event("road", "accident", entity_id, cell, sev, ("crowdsourced"), scenario_tag)]
 
 
 def flooding(cell: str = None, severity: float = None, scenario_tag=None) -> List[dict]:
@@ -57,7 +57,7 @@ def heavy_congestion(cell: str = None, severity: float = None, scenario_tag=None
     cell = cell or random.choice(ALL_CELLS)
     sev = severity if severity is not None else random.uniform(0.4, 0.7)
     entity_id = f"congestion-{cell}"
-    return [_event("road", "congestion", entity_id, cell, sev, "crowd", scenario_tag)]
+    return [_event("road", "congestion", entity_id, cell, sev, ("crowdsourced"), scenario_tag)]
 
 
 def road_cleared(cell: str, scenario_tag=None) -> List[dict]:

@@ -15,10 +15,10 @@ def _event(domain, event_type, entity_id, h3_cell, severity, source_type, scenar
         "domain": domain,
         "event_type": event_type,
         "entity_id": entity_id,
-        "h3_cell": h3_cell,
+        "cell": h3_cell,
         "severity": round(severity, 3),
         "source_type": source_type,
-        "source_reliability": {"official": 0.9, "sensor": 0.7, "crowd": 0.5, "anonymous": 0.3}[source_type],
+        "source_reliability": {"official": 0.9, "sensor": 0.7, "crowdsourced": 0.5, "anonymous": 0.3}[source_type],
         "event_timestamp": now.isoformat(),
         "ingestion_timestamp": now.isoformat(),
         "parse_confidence": 1.0,
@@ -46,7 +46,7 @@ def minor_delay(route_id: str = None, severity: float = None, scenario_tag=None)
     route = route_id or random.choice(ROUTES)
     sev = severity if severity is not None else random.uniform(0.3, 0.5)
     cells = ROUTE_CELLS.get(route, [])
-    return [_event("transit", "minor_delay", route, cell, sev, "crowd", scenario_tag) for cell in cells]
+    return [_event("transit", "minor_delay", route, cell, sev, ("crowdsourced"), scenario_tag) for cell in cells]
 
 
 def overcrowding(route_id: str = None, severity: float = None, scenario_tag=None) -> List[dict]:
@@ -54,7 +54,7 @@ def overcrowding(route_id: str = None, severity: float = None, scenario_tag=None
     route = route_id or random.choice(ROUTES)
     sev = severity if severity is not None else random.uniform(0.5, 0.8)
     cells = ROUTE_CELLS.get(route, [])
-    return [_event("transit", "overcrowding", route, cell, sev, "crowd", scenario_tag) for cell in cells]
+    return [_event("transit", "overcrowding", route, cell, sev, ("crowdsourced"), scenario_tag) for cell in cells]
 
 
 def service_resumed(route_id: str, scenario_tag=None) -> List[dict]:

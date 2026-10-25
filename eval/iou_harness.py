@@ -1,269 +1,273 @@
 """
 UrbanPulse — IoU Evaluation Harness
-====================================
-Owner : Priyanshu (A1) — Phase 2/3 / Phase 7
+=====================================
+Owner  : Kanak (A2) — Day 3
 
-Evaluates system predictions against ground-truth isolation zones:
-  - Intersection over Union (IoU): |A ∩ B| / |A ∪ B|
-  - Precision: |A ∩ B| / |A|
-  - Recall: |A ∩ B| / |B|
-  - Zone Hit Rate: 1 if IoU >= 0.5 else 0
-  - Bootstrap Confidence Intervals (95% CI)
-  - Detection Latency (seconds from first causal event to first High prediction)
+Reads ground-truth YAML files (eval/scenarios/holdout/ — scenario owner only)
+and compares against engine predictions to compute IoU and other metrics.
 
-Adheres strictly to contracts/ground_truth_format.yaml and contracts/scenario_format.yaml.
-The engine never imports this file.
+The engine NEVER reads ground-truth files. Only this harness does.
+
+Metrics:
+    iou              : Intersection over Union on H3 cell sets (primary)
+    precision        : TP / (TP + FP)
+    recall           : TP / (TP + FN)
+    zone_hit_rate    : 1 if IoU >= 0.5, else 0
+    detection_latency: seconds from first causal event to first High prediction
+    calibration      : Brier score + reliability curve (Phase 7)
+
+Usage:
+    python eval/iou_harness.py --scenario eval/scenarios/SCN-A-001.yaml
+    python eval/iou_harness.py --all         # runs all non-holdout scenarios
+    python eval/iou_harness.py --holdout     # runs holdout (scenario owner only)
 """
 
 from __future__ import annotations
 
 import json
-import os
-import random
-import sys
 import time
+import argparse
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Optional
 
-import yaml
+SCENARIOS_DIR = Path("eval/scenarios")
+HOLDOUT_DIR   = SCENARIOS_DIR / "holdout"
+RESULTS_DIR   = Path("eval/results")
+RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Add repo root to sys.path so modules can be imported
-REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+HIGH_THRESHOLD = 0.65   # must match risk_model.py
 
-from contracts.event_schema import CanonicalEvent
-from engine.cell_state import all_cells, get_cell
-from engine.engine import ENGINE
 
-HIGH_RISK_THRESHOLD = 0.65
+# ── IoU computation ───────────────────────────────────────────────────────────
 
+def compute_iou(predicted: set[str], ground_truth: set[str]) -> float:
+    """Intersection over Union on H3 cell ID sets."""
+    if not predicted and not ground_truth:
+        return 1.0   # both empty = perfect match
+    if not predicted or not ground_truth:
+        return 0.0
+    intersection = len(predicted & ground_truth)
+    union        = len(predicted | ground_truth)
+    return round(intersection / union, 4)
+
+
+def compute_precision_recall(
+    predicted: set[str], ground_truth: set[str]
+) -> tuple[float, float]:
+    if not predicted:
+        return 0.0, 0.0
+    tp = len(predicted & ground_truth)
+    precision = tp / len(predicted) if predicted else 0.0
+    recall    = tp / len(ground_truth) if ground_truth else 0.0
+    return round(precision, 4), round(recall, 4)
+
+
+# ── Scenario result ────────────────────────────────────────────────────────────
 
 @dataclass
-class EvaluationMetrics:
-    scenario_id: str
-    scenario_name: str
-    iou: float
-    iou_ci: Tuple[float, float]
-    precision: float
-    recall: float
-    f1_score: float
-    zone_hit: bool
-    predicted_count: int
-    ground_truth_count: int
-    intersection_count: int
-    union_count: int
-    detection_latency_seconds: Optional[float] = None
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+class ScenarioResult:
+    scenario_id:        str
+    family:             str
+    iou:                float
+    precision:          float
+    recall:             float
+    zone_hit_rate:      int           # 1 if IoU >= 0.5
+    detection_latency:  Optional[float]  # seconds; None if never detected
+    predicted_cells:    set[str]      = field(default_factory=set, repr=False)
+    ground_truth_cells: set[str]      = field(default_factory=set, repr=False)
+    notes:              str           = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict:
         return {
-            "scenario_id": self.scenario_id,
-            "scenario_name": self.scenario_name,
-            "iou": round(self.iou, 4),
-            "iou_ci_95": [round(self.iou_ci[0], 4), round(self.iou_ci[1], 4)],
-            "precision": round(self.precision, 4),
-            "recall": round(self.recall, 4),
-            "f1_score": round(self.f1_score, 4),
-            "zone_hit": self.zone_hit,
-            "predicted_count": self.predicted_count,
-            "ground_truth_count": self.ground_truth_count,
-            "intersection_count": self.intersection_count,
-            "union_count": self.union_count,
-            "detection_latency_seconds": round(self.detection_latency_seconds, 2) if self.detection_latency_seconds else None,
-            "timestamp": self.timestamp,
+            "scenario_id":       self.scenario_id,
+            "family":            self.family,
+            "iou":               self.iou,
+            "precision":         self.precision,
+            "recall":            self.recall,
+            "zone_hit_rate":     self.zone_hit_rate,
+            "detection_latency": self.detection_latency,
+            "predicted_count":   len(self.predicted_cells),
+            "truth_count":       len(self.ground_truth_cells),
+            "notes":             self.notes,
         }
 
 
-def compute_iou(
-    predicted_cells: Set[str],
-    ground_truth_cells: Set[str],
-    iou_hit_threshold: float = 0.5,
-) -> Dict[str, Any]:
+# ── Scenario runner ────────────────────────────────────────────────────────────
+
+def run_scenario(scenario_path: Path, verbose: bool = False) -> ScenarioResult:
     """
-    Computes spatial IoU and classification metrics between two cell sets.
+    Run one scenario through the engine and measure IoU.
+    
+    1. Load scenario YAML
+    2. Reset engine state (fresh for each scenario)
+    3. Inject events via ENGINE.process_event()
+    4. Compare High-risk cells with ground truth
     """
-    intersection = predicted_cells & ground_truth_cells
-    union = predicted_cells | ground_truth_cells
+    try:
+        import yaml
+    except ImportError:
+        raise ImportError("pip install pyyaml")
 
-    iou = len(intersection) / len(union) if union else 1.0 if not predicted_cells and not ground_truth_cells else 0.0
-    precision = len(intersection) / len(predicted_cells) if predicted_cells else 0.0
-    recall = len(intersection) / len(ground_truth_cells) if ground_truth_cells else 0.0
-    f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
+    with open(scenario_path) as f:
+        scenario = yaml.safe_load(f)
 
-    return {
-        "iou": iou,
-        "precision": precision,
-        "recall": recall,
-        "f1": f1,
-        "zone_hit": iou >= iou_hit_threshold,
-        "intersection": len(intersection),
-        "union": len(union),
-    }
+    scenario_id = scenario.get("scenario_id", scenario_path.stem)
+    family      = scenario.get("family", "?")
+    gt_cells    = set(scenario.get("ground_truth", {}).get("polygon_h3_cells", []))
 
+    if verbose:
+        print(f"\n[scenario] {scenario_id} (family {family})")
+        print(f"  Ground truth: {len(gt_cells)} cells")
 
-def bootstrap_ci(
-    predicted_cells: Set[str],
-    ground_truth_cells: Set[str],
-    n_draws: int = 200,
-    alpha: float = 0.05,
-    seed: int = 42,
-) -> Tuple[float, float]:
-    """
-    Bootstrap 95% confidence interval for IoU.
-    """
-    if not predicted_cells and not ground_truth_cells:
-        return (1.0, 1.0)
-    if not predicted_cells or not ground_truth_cells:
-        return (0.0, 0.0)
+    # Import engine (fresh state per scenario by resetting cell registry)
+    from engine.engine import ENGINE
+    from engine.cell_state import _registry
+    _registry.clear()
 
-    rng = random.Random(seed)
-    all_items = list(predicted_cells | ground_truth_cells)
-    n = len(all_items)
+    # Make sure baseline is loaded
+    if not ENGINE.baseline:
+        ENGINE.load_baseline()
 
-    ious: List[float] = []
-    for _ in range(n_draws):
-        sample = rng.choices(all_items, k=n)
-        sample_set = set(sample)
-        p_sub = predicted_cells & sample_set
-        g_sub = ground_truth_cells & sample_set
-        inter = len(p_sub & g_sub)
-        un = len(p_sub | g_sub)
-        ious.append(inter / un if un > 0 else 0.0)
+    from contracts.event_schema import CanonicalEvent
+    from pydantic import ValidationError
 
-    ious.sort()
-    low_idx = int((alpha / 2) * n_draws)
-    high_idx = int((1 - alpha / 2) * n_draws)
-    return (ious[low_idx], ious[min(high_idx, n_draws - 1)])
+    events    = scenario.get("events", [])
+    decoys    = scenario.get("decoys", [])
+    all_events = events + decoys
 
+    first_event_time = None
+    first_detection_time = None
 
-def load_scenario_yaml(path: str | Path) -> Dict[str, Any]:
-    with open(path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
-
-
-def evaluate_scenario(
-    scenario_path: str | Path,
-    ground_truth_path: Optional[str | Path] = None,
-) -> EvaluationMetrics:
-    """
-    Replays a scenario through the engine and scores predicted High-risk zones.
-    """
-    scenario = load_scenario_yaml(scenario_path)
-    scenario_id = scenario.get("scenario_id", "UNKNOWN")
-    scenario_name = scenario.get("name", scenario_id)
-
-    # 1. Resolve Ground Truth cells
-    gt_cells: Set[str] = set()
-    if ground_truth_path and Path(ground_truth_path).exists():
-        gt_data = load_scenario_yaml(ground_truth_path)
-        gt_cells = set(gt_data.get("ground_truth", {}).get("polygon_h3_cells", []))
-    elif "ground_truth" in scenario:
-        gt_cells = set(scenario["ground_truth"].get("polygon_h3_cells", []))
-
-    # 2. Reset engine cells / state for isolated replay
-    ENGINE.load_baseline()
-
-    # 3. Replay scenario events
-    events = scenario.get("events", [])
-    first_causal_time = None
-    first_high_prediction_time = None
-
-    t0 = time.time()
-    for ev in events:
-        domain = ev.get("domain", "power")
-        # Map scenario domain aliases
-        if domain == "transport":
-            domain = "transit" if "transit" in ev.get("event_type", "") else "road"
-
-        src = ev.get("source_type", "sensor")
-        if src == "crowd":
-            src = "crowdsourced"
-
-        now_iso = datetime.now(timezone.utc).isoformat()
-        event_dict = {
-            "event_id": f"scn-ev-{random.randint(10000, 99999)}",
-            "domain": domain,
-            "event_type": ev.get("event_type", "incident"),
-            "entity_id": ev.get("entity_id", "sim_entity"),
-            "h3_cell": ev.get("h3_cell"),
-            "severity": float(ev.get("severity", 0.5)),
-            "source_type": src,
-            "source_reliability": 0.9 if src == "official" else 0.7 if src == "sensor" else 0.5,
-            "event_timestamp": now_iso,
-            "ingestion_timestamp": now_iso,
-            "parse_confidence": 1.0,
-            "scenario_tag": scenario_id,
-        }
-
+    for ev_def in all_events:
         try:
-            canonical = CanonicalEvent(**event_dict)
-            res = ENGINE.process_event(canonical)
+            ts = datetime.now(timezone.utc)
+            event = CanonicalEvent(
+                domain             = ev_def["domain"],
+                event_type         = ev_def["event_type"],
+                entity_id          = ev_def["entity_id"],
+                h3_cell            = ev_def["h3_cell"],
+                severity           = ev_def["severity"],
+                source_type        = ev_def.get("source_type", "official"),
+                source_reliability = float({"official":0.9,"sensor":0.7,"crowdsourced":0.5,"anonymous":0.3}.get(ev_def.get("source_type","official"), 0.5)),
+                event_timestamp    = ts,
+                ingestion_timestamp= ts,
+                parse_confidence   = 1.0,
+            )
+            result = ENGINE.process_event(event)
 
-            if first_causal_time is None:
-                first_causal_time = time.time()
+            if first_event_time is None:
+                first_event_time = time.monotonic()
 
-            if res.risk >= HIGH_RISK_THRESHOLD and not res.is_unknown and first_high_prediction_time is None:
-                first_high_prediction_time = time.time()
-        except Exception as e:
-            # Skip invalid test events if schema rejects
-            continue
+            # Check if we've detected a High-risk cell
+            if result.label == "high" and first_detection_time is None:
+                first_detection_time = time.monotonic()
 
-    # 4. Collect predicted High-risk cells (risk >= 0.65 and not is_unknown)
-    predicted_high: Set[str] = {
-        cell_id for cell_id, cell in all_cells().items()
-        if cell.risk >= HIGH_RISK_THRESHOLD and not cell.is_unknown
+        except (ValidationError, Exception) as e:
+            if verbose:
+                print(f"  [skip] event {ev_def.get('entity_id','?')}: {e}")
+
+    # Collect predicted High cells
+    from engine.cell_state import all_cells
+    predicted = {
+        cell_id
+        for cell_id, cell in all_cells().items()
+        if not cell.is_unknown and cell.risk >= HIGH_THRESHOLD
     }
 
-    # 5. Compute metrics
-    metrics_dict = compute_iou(predicted_high, gt_cells)
-    ci = bootstrap_ci(predicted_high, gt_cells, n_draws=200)
+    iou = compute_iou(predicted, gt_cells)
+    precision, recall = compute_precision_recall(predicted, gt_cells)
+    latency = (
+        round(first_detection_time - first_event_time, 2)
+        if first_detection_time and first_event_time else None
+    )
 
-    latency = None
-    if first_causal_time and first_high_prediction_time:
-        latency = max(0.01, first_high_prediction_time - first_causal_time)
+    if verbose:
+        print(f"  Predicted High: {len(predicted)} cells")
+        print(f"  IoU: {iou}  Precision: {precision}  Recall: {recall}")
+        print(f"  Detection latency: {latency}s")
 
-    return EvaluationMetrics(
+    return ScenarioResult(
         scenario_id=scenario_id,
-        scenario_name=scenario_name,
-        iou=metrics_dict["iou"],
-        iou_ci=ci,
-        precision=metrics_dict["precision"],
-        recall=metrics_dict["recall"],
-        f1_score=metrics_dict["f1"],
-        zone_hit=metrics_dict["zone_hit"],
-        predicted_count=len(predicted_high),
-        ground_truth_count=len(gt_cells),
-        intersection_count=metrics_dict["intersection"],
-        union_count=metrics_dict["union"],
-        detection_latency_seconds=latency,
+        family=family,
+        iou=iou,
+        precision=precision,
+        recall=recall,
+        zone_hit_rate=1 if iou >= 0.5 else 0,
+        detection_latency=latency,
+        predicted_cells=predicted,
+        ground_truth_cells=gt_cells,
     )
 
 
-def print_report(m: EvaluationMetrics) -> None:
-    print("\n" + "=" * 70)
-    print(f"  URBANPULSE EVALUATION REPORT — {m.scenario_id}")
-    print(f"  Scenario: {m.scenario_name}")
-    print("=" * 70)
-    print(f"  Primary Metric (IoU):          {m.iou * 100:.2f}%")
-    print(f"  IoU 95% Bootstrap CI:          [{m.iou_ci[0]*100:.2f}%, {m.iou_ci[1]*100:.2f}%]")
-    print(f"  Precision:                     {m.precision * 100:.2f}%")
-    print(f"  Recall:                        {m.recall * 100:.2f}%")
-    print(f"  F1 Score:                      {m.f1_score:.4f}")
-    print(f"  Zone Detected (IoU >= 0.5):    {'✅ YES' if m.zone_hit else '❌ NO'}")
-    print(f"  Predicted High Cells:          {m.predicted_count}")
-    print(f"  Ground Truth High Cells:       {m.ground_truth_count}")
-    print(f"  Intersection:                  {m.intersection_count}")
-    print(f"  Union:                         {m.union_count}")
-    if m.detection_latency_seconds:
-        print(f"  Detection Latency:             {m.detection_latency_seconds:.3f}s")
-    print("=" * 70 + "\n")
+# ── Batch runner ──────────────────────────────────────────────────────────────
 
+def run_all(include_holdout: bool = False, verbose: bool = False) -> list[ScenarioResult]:
+    dirs = [SCENARIOS_DIR]
+    if include_holdout:
+        dirs.append(HOLDOUT_DIR)
+
+    scenario_files = []
+    for d in dirs:
+        scenario_files.extend(sorted(d.glob("SCN-*.yaml")))
+
+    if not scenario_files:
+        print("[warn] No scenario files found. Create YAML files in eval/scenarios/")
+        return []
+
+    results = []
+    for path in scenario_files:
+        result = run_scenario(path, verbose=verbose)
+        results.append(result)
+        print(f"  {result.scenario_id:<15} IoU={result.iou:.3f}  "
+              f"P={result.precision:.3f}  R={result.recall:.3f}  "
+              f"hit={'✓' if result.zone_hit_rate else '✗'}  "
+              f"latency={result.detection_latency}s")
+
+    return results
+
+
+def print_summary(results: list[ScenarioResult]) -> None:
+    if not results:
+        return
+    ious = [r.iou for r in results]
+    hits = [r.zone_hit_rate for r in results]
+    print(f"\n{'='*55}")
+    print(f"  Scenarios run : {len(results)}")
+    print(f"  Mean IoU      : {sum(ious)/len(ious):.3f}")
+    print(f"  Min / Max IoU : {min(ious):.3f} / {max(ious):.3f}")
+    print(f"  Zone hit rate : {sum(hits)}/{len(hits)} ({100*sum(hits)//len(hits)}%)")
+    print(f"{'='*55}")
+
+
+def save_results(results: list[ScenarioResult], tag: str = "") -> Path:
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    out = RESULTS_DIR / f"iou_results_{tag}_{ts}.json"
+    with open(out, "w") as f:
+        json.dump([r.to_dict() for r in results], f, indent=2)
+    print(f"[saved] {out}")
+    return out
+
+
+# ── CLI ───────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    scenario_arg = sys.argv[1] if len(sys.argv) > 1 else str(REPO_ROOT / "contracts" / "scenario_format.yaml")
-    gt_arg = sys.argv[2] if len(sys.argv) > 2 else None
-    res = evaluate_scenario(scenario_arg, gt_arg)
-    print_report(res)
+    parser = argparse.ArgumentParser(description="UrbanPulse IoU evaluation harness")
+    parser.add_argument("--scenario", help="Path to single scenario YAML file")
+    parser.add_argument("--all",      action="store_true", help="Run all non-holdout scenarios")
+    parser.add_argument("--holdout",  action="store_true", help="Run holdout scenarios (scenario owner only)")
+    parser.add_argument("--verbose",  action="store_true")
+    parser.add_argument("--save",     action="store_true", help="Save results to JSON")
+    args = parser.parse_args()
+
+    if args.scenario:
+        result = run_scenario(Path(args.scenario), verbose=True)
+        print(result.to_dict())
+    elif args.all or args.holdout:
+        results = run_all(include_holdout=args.holdout, verbose=args.verbose)
+        print_summary(results)
+        if args.save and results:
+            save_results(results, tag="holdout" if args.holdout else "all")
+    else:
+        parser.print_help()

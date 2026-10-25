@@ -326,7 +326,7 @@ def main():
         default="random",
         help="Dropout mode"
     )
-    parser.add_argument("--drop",  default="crowd",  help="Source type or domain to target")
+    parser.add_argument("--drop",  default=("crowdsourced"),  help="Source type or domain to target")
     parser.add_argument("--rate",  type=float, default=0.60, help="Dropout fraction (default 0.60)")
     parser.add_argument("--count", type=int,   default=40,   help="Events to generate (non-replay)")
     parser.add_argument("--steps", type=int,   default=10,   help="Steps for gradual mode")
