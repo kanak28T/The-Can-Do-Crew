@@ -40,18 +40,26 @@ export default function App() {
       const updatedFeatures = prevData.features.map((feature) => {
         if (feature.properties.h3_cell?.toLowerCase() === cellId) {
           found = true;
-          const status = payload.label || (payload.risk >= 0.7 ? 'high' : payload.risk >= 0.4 ? 'medium' : 'low');
-          const newDrivers = payload.drivers || [
-            `${(payload.domain || 'stress').toUpperCase()} stress +${Math.round((payload.severity || 0.8) * 100)}%`,
-            `Dynamic recalculation (risk: ${Math.round(payload.risk * 100)}%)`,
-          ];
+          const isUnknown = Boolean(payload.is_unknown || payload.label === 'unknown');
+          const status = isUnknown ? 'unknown' : (payload.label || (payload.risk >= 0.7 ? 'high' : payload.risk >= 0.4 ? 'medium' : 'low'));
+          const newDrivers = payload.drivers || (
+            isUnknown
+              ? [`State: UNKNOWN (${payload.unknown_reason || 'low confidence / stale data'})`, `Confidence: ${Math.round((payload.confidence || 0) * 100)}%`]
+              : [
+                  `${(payload.domain || 'stress').toUpperCase()} stress +${Math.round((payload.severity || 0.8) * 100)}%`,
+                  `Dynamic recalculation (risk: ${Math.round(payload.risk * 100)}%)`,
+                ]
+          );
 
           return {
             ...feature,
             properties: {
               ...feature.properties,
-              risk: payload.risk,
+              risk: isUnknown ? null : payload.risk,
               status: status,
+              confidence: payload.confidence,
+              is_unknown: isUnknown,
+              unknown_reason: payload.unknown_reason,
               drivers: newDrivers,
               lastUpdated: new Date().toISOString(),
             },
@@ -65,7 +73,8 @@ export default function App() {
         try {
           const boundary = h3.cellToBoundary(cellId, true);
           boundary.push(boundary[0]); // close polygon loop
-          const status = payload.label || (payload.risk >= 0.7 ? 'high' : payload.risk >= 0.4 ? 'medium' : 'low');
+          const isUnknown = Boolean(payload.is_unknown || payload.label === 'unknown');
+          const status = isUnknown ? 'unknown' : (payload.label || (payload.risk >= 0.7 ? 'high' : payload.risk >= 0.4 ? 'medium' : 'low'));
 
           updatedFeatures.push({
             type: 'Feature',
@@ -73,9 +82,12 @@ export default function App() {
             properties: {
               h3_cell: cellId,
               ward: payload.ward || 'Live Ingested Zone',
-              risk: payload.risk,
+              risk: isUnknown ? null : payload.risk,
               status: status,
-              drivers: payload.drivers || [`Live Event Ingest: ${payload.domain || 'alert'}`],
+              confidence: payload.confidence,
+              is_unknown: isUnknown,
+              unknown_reason: payload.unknown_reason,
+              drivers: payload.drivers || (isUnknown ? [`State: UNKNOWN (${payload.unknown_reason || 'insufficient data'})`] : [`Live Event Ingest: ${payload.domain || 'alert'}`]),
               lastUpdated: new Date().toISOString(),
             },
             geometry: {
