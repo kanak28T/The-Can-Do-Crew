@@ -10,12 +10,20 @@ build/
 .venv/
 venv/
 env/
+cache/
 
 # Data files (large; download locally via scripts)
 data/*.tif
 data/*.graphml
 data/*.parquet
 data/*.db
+*.db
+db/
+data/raw_viirs/
+
+# Evaluation holdouts / truth
+eval/scenarios/holdout/
+eval/truth/
 
 # Environment secrets — NEVER commit these
 .env

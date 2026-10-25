@@ -1,0 +1,13 @@
+# Team Beta (B2) Data & Pipeline Dependencies
+# Verified directly from script and test imports
+earthaccess
+geopandas
+h3>=4.0
+h5py
+numpy
+osmnx
+pandas
+pytest
+requests
+scikit-learn
+shapely
