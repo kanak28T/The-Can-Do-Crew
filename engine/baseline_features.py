@@ -55,11 +55,11 @@ def load_baseline_features(
     Load baseline features for every cell in the H3 grid.
     Returns {h3_cell: BaselineFeatures}.
     """
-    if not grid_path.exists():
+    if not Path(grid_path).exists():
         print(f"[warn] {grid_path} not found — no baseline features loaded.")
         return {}
 
-    with open(grid_path) as f:
+    with open(Path(grid_path)) as f:
         grid = json.load(f)
     cells = [feat["properties"]["cell"] for feat in grid["features"]]
 

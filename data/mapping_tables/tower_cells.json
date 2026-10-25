@@ -1,0 +1,61 @@
+{
+  "_comment": "Cell tower \u2192 H3 res-9 cells. Approximate from OpenCellID density.",
+  "tower_T01": [],
+  "tower_T02": [
+    "89609612863ffff",
+    "8960961287bffff",
+    "8960961286bffff",
+    "8960961286fffff"
+  ],
+  "tower_T03": [],
+  "tower_T04": [],
+  "tower_T05": [
+    "8960968c24bffff",
+    "8960968d197ffff",
+    "8960968d187ffff",
+    "8960968d1b3ffff"
+  ],
+  "tower_T06": [
+    "8960968da8bffff",
+    "8960968dad7ffff",
+    "8960968dac7ffff"
+  ],
+  "tower_T07": [
+    "896096126a7ffff",
+    "896096126a3ffff"
+  ],
+  "tower_T08": [
+    "8960968d62bffff",
+    "8960968d677ffff"
+  ],
+  "tower_T09": [
+    "89609612443ffff",
+    "8960961245bffff",
+    "8960961244bffff"
+  ],
+  "tower_T10": [
+    "89609612e8fffff",
+    "89609612e8bffff"
+  ],
+  "tower_T11": [
+    "8960968dda7ffff",
+    "8960968dda3ffff"
+  ],
+  "tower_T12": [
+    "8960968d97bffff",
+    "8960968d94fffff",
+    "8960968dbb7ffff"
+  ],
+  "tower_T13": [
+    "8960968dbcfffff",
+    "8960968dbcbffff",
+    "8960968db53ffff",
+    "8960968db57ffff"
+  ],
+  "tower_T14": [],
+  "tower_T15": [
+    "8960961725bffff",
+    "89609610d2fffff",
+    "89609610997ffff"
+  ]
+}

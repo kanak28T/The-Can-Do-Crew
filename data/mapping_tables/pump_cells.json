@@ -1,0 +1,59 @@
+{
+  "_comment": "Pump zone \u2192 H3 res-9 cells. Simulated from NMC water supply zones.",
+  "pump_P01": [],
+  "pump_P02": [
+    "89609688b63ffff",
+    "89609688b7bffff",
+    "89609688b6bffff",
+    "89609688b6fffff"
+  ],
+  "pump_P03": [
+    "89609617587ffff",
+    "89609617583ffff",
+    "8960961758fffff",
+    "896096175bbffff",
+    "896096175b3ffff",
+    "8960961664bffff"
+  ],
+  "pump_P04": [
+    "89609612cafffff",
+    "89609612cabffff",
+    "89609612c33ffff",
+    "89609612c37ffff",
+    "89609612ddbffff"
+  ],
+  "pump_P05": [
+    "89609612363ffff",
+    "8960961237bffff",
+    "8960961236bffff",
+    "8960961236fffff",
+    "89609612367ffff"
+  ],
+  "pump_P06": [
+    "89609616617ffff",
+    "89609616613ffff",
+    "89609616603ffff",
+    "89609616607ffff",
+    "896096166abffff"
+  ],
+  "pump_P07": [
+    "89609610c93ffff",
+    "89609612a67ffff",
+    "89609610c9bffff",
+    "89609610c83ffff",
+    "89609610c97ffff"
+  ],
+  "pump_P08": [],
+  "pump_P09": [
+    "89609612573ffff",
+    "89609612547ffff",
+    "8960961257bffff"
+  ],
+  "pump_P10": [
+    "89609617507ffff",
+    "89609617503ffff",
+    "8960961750fffff",
+    "8960961753bffff",
+    "89609617533ffff"
+  ]
+}
