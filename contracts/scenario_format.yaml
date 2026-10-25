@@ -24,6 +24,9 @@ time_compression_factor: 60              # 1 real second = 60 simulated seconds
 # ── Ground truth (NEVER loaded by the engine) ─────────────────────────────────
 ground_truth:
   polygon_h3_cells:                       # List of H3 res-9 cells in the true zone
+    # ⚠️  PLACEHOLDER CELLS — Sanvi (B2) must replace with real Nagpur H3 res-9 cells
+    # after downloading ward boundaries. Verify with: h3.is_valid_cell("891f1d48003ffff")
+    # and h3.get_resolution("891f1d48003ffff") == 9
     - "891f1d48003ffff"
     - "891f1d48007ffff"
     - "891f1d4800bffff"

@@ -19,6 +19,12 @@ from pathlib import Path
 # Nagpur bounding box (WGS84)
 # SW corner: 78.96°E, 20.87°N   NE corner: 79.22°E, 21.25°N
 # Padded slightly so cells on the boundary are fully covered.
+#
+# ⚠️  VERIFY this bbox after Sanvi (B2) downloads nagpur_wards.geojson:
+#     import geopandas as gpd
+#     wards = gpd.read_file("data/nagpur_wards.geojson")
+#     print(wards.total_bounds)   # (min_lon, min_lat, max_lon, max_lat)
+# Update NAGPUR_BBOX to match, then re-run this script.
 # ---------------------------------------------------------------------------
 NAGPUR_BBOX = (78.90, 20.80, 79.30, 21.35)   # (min_lon, min_lat, max_lon, max_lat)
 
