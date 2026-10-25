@@ -64,3 +64,4 @@ def confidence_label(confidence: float) -> str:
     if confidence > 0.0:
         return "low"
     return "unknown"
+

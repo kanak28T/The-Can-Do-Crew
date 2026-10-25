@@ -121,8 +121,29 @@ class CellState:
     # ── Phase 3 helpers ────────────────────────────────────────────────────────
 
     def check_unknown(self) -> None:
-        """Alias kept for backward-compat. Delegates to update_confidence()."""
-        self.update_confidence()
+        """Check whether cell should be marked Unknown due to staleness or low confidence."""
+        if not self.last_updated:
+            self.confidence = 0.0
+            self.is_unknown = True
+            self.unknown_reason = "low_confidence"
+            return
+
+        now = datetime.now(timezone.utc)
+        any_recent = any(
+            (now - t).total_seconds() / 3600 < STALE_THRESHOLD_HOURS
+            for t in self.last_updated.values()
+        )
+        if not any_recent:
+            self.is_unknown = True
+            self.unknown_reason = "stale"
+            return
+
+        if self.source_types:
+            self.update_confidence()
+        else:
+            self.is_unknown = is_unknown(self.confidence)
+            self.unknown_reason = "low_confidence" if self.is_unknown else None
+
 
     def stale_domains(self) -> Dict[str, float]:
         """Return {domain: hours_stale} for domains older than STALE_THRESHOLD_HOURS."""
@@ -169,6 +190,6 @@ def all_cells() -> Dict[str, CellState]:
     return _registry
 
 
-def snapshot() -> list:
+def snapshot() -> list[dict]:
     """All cells as a list of dicts — used by SSE broadcast."""
     return [c.to_dict() for c in _registry.values()]

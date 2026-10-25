@@ -220,7 +220,7 @@ def test_confidence_decay_curve():
     print(f"  Confidence at 12h: {conf_12:.4f}")
     print(f"  Confidence at 14h: {conf_14:.4f}")
 
-    assert conf_0 > conf_12 > conf_14, "Confidence should decay over time"
+    assert conf_0 > conf_12 >= conf_14, "Confidence should decay over time"
     assert conf_12 == 0.0, "At exactly stale threshold confidence should be 0"
     print("  ✅ PASS\n")
 

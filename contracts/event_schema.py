@@ -120,9 +120,7 @@ class CanonicalEvent(BaseModel):
         if v == "crowd":
             return "crowdsourced"
         if v not in SOURCE_RELIABILITY:
-            raise ValueError(
-                f"source_type must be one of {list(SOURCE_RELIABILITY.keys())}"
-            )
+            raise ValueError(f"source_type must be one of {list(SOURCE_RELIABILITY.keys())}")
         return v
 
     @field_validator("source_reliability", mode="before")
@@ -141,9 +139,7 @@ class CanonicalEvent(BaseModel):
     def valid_h3(cls, v: str) -> str:
         v = v.lower()
         if len(v) != 15 or not all(c in "0123456789abcdef" for c in v):
-            raise ValueError(
-                f"Invalid H3 res-9 cell ID: {v!r} (must be 15 hex chars)"
-            )
+            raise ValueError(f"Invalid H3 res-9 cell ID: {v!r} (must be 15 hex chars)")
         return v
 
     @field_validator("event_type")
@@ -211,7 +207,5 @@ class IngestRequest(BaseModel):
     @classmethod
     def raw_text_no_pii(cls, v: Optional[str]) -> Optional[str]:
         if v and has_pii(v):
-            raise ValueError(
-                "raw_text contains PII. Node parser must scrub before submitting."
-            )
+            raise ValueError("raw_text contains PII. Node parser must scrub before submitting.")
         return v

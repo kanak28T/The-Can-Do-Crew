@@ -1,0 +1,38 @@
+# UrbanPulse — Ground-Truth Format Contract
+# Version: 1.0
+#
+# IMPORTANT: This file is read ONLY by eval/iou_harness.py.
+# The engine (engine/, api/, fed/) must NEVER import or read ground-truth files.
+# The scenario runner must NEVER pass ground_truth data to /ingest.
+#
+# Stored separately from the scenario file so the harness can be run
+# independently without risk of leaking the answer to the engine.
+
+scenario_id: "SCN-A-001"          # Must match the scenario file's scenario_id
+
+ground_truth:
+  polygon_h3_cells:                # List of H3 res-9 cell IDs that are truly High-risk
+    - "891f1d48003ffff"
+    - "891f1d48007ffff"
+    - "891f1d4800bffff"
+
+  zone_label: "High"               # The label the engine should assign to these cells
+
+  evaluation_window:               # Only score predictions made within this window
+    start_offset: "T+1h"           # Don't score before the scenario has had time to develop
+    end_offset: "T+4h"
+
+  notes: >
+    Ground truth is simulated and planted by the scenario owner.
+    These cells represent the plausible isolation zone given road R-14 closure
+    and route 4 suspension. Not a real-world validation.
+
+# ── IoU scoring instructions for the harness ──────────────────────────────────
+scoring:
+  primary_metric: "iou"            # Intersection over Union on H3 cell sets
+  secondary_metrics:
+    - "precision"
+    - "recall"
+    - "zone_hit_rate"              # 1 if IoU >= 0.5, else 0
+    - "detection_latency_seconds"  # Time from first causal event to first High prediction
+  iou_threshold: 0.5               # Zone is "detected" if IoU >= this value

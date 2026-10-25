@@ -35,7 +35,7 @@ class CellUpdateResult:
     cell:       str
     risk:       float
     label:      str
-    interval:   tuple
+    interval:   tuple[float, float]
     confidence: float
     is_unknown: bool
     domain:     str
@@ -50,9 +50,9 @@ class UrbanPulseEngine:
     """
 
     def __init__(self, model: RiskModel = MODEL):
-        self.model    = model
+        self.model     = model
         self.baseline: dict[str, BaselineFeatures] = {}
-        self._loaded  = False
+        self._loaded   = False
 
     def load_baseline(self, grid_path: str = "data/nagpur_h3_res9.geojson") -> None:
         """
@@ -60,7 +60,7 @@ class UrbanPulseEngine:
         Called once at API startup (api/main.py @startup event).
         Safe to call again to refresh after new data files arrive.
         """
-        self.baseline = load_baseline_features()
+        self.baseline = load_baseline_features(grid_path)
         self._loaded  = True
         print(f"[engine] Baseline loaded: {len(self.baseline)} cells.")
 
@@ -136,6 +136,7 @@ class UrbanPulseEngine:
         Blends new event stress with existing cell stress using source reliability.
 
         official(0.9) dominates crowd(0.5); anonymous(0.3) barely moves the needle.
+        Spam cap is enforced upstream in api/main.py before this is called.
         """
         w_new      = event.source_reliability
         w_existing = 1.0 - w_new
@@ -146,7 +147,7 @@ class UrbanPulseEngine:
         official_stress: float,
         crowd_stress: float,
         threshold: float = 0.4,
-    ) -> tuple:
+    ) -> tuple[float, bool]:
         """
         Conflict detection (plan section 6).
         If official and crowd disagree by > threshold, fuse but flag for verify.

@@ -37,7 +37,7 @@ app = FastAPI(title="UrbanPulse API", version=SCHEMA_VERSION)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv("CORS_ORIGIN", "*")],   # set CORS_ORIGIN env var for prod
+    allow_origins=[os.getenv("CORS_ORIGIN", "*")],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -64,7 +64,7 @@ def _init_db():
             h3_cell             TEXT NOT NULL,
             severity            REAL NOT NULL,
             source_type         TEXT NOT NULL,
-            source_reliability  REAL NOT NULL,
+            source_reliability REAL NOT NULL,
             event_timestamp     TEXT NOT NULL,
             ingestion_timestamp TEXT NOT NULL,
             parse_confidence    REAL NOT NULL,
@@ -77,7 +77,7 @@ def _init_db():
 
 
 # ── SSE broadcast ─────────────────────────────────────────────────────────────
-_sse_clients: list = []
+_sse_clients: list[asyncio.Queue] = []
 
 
 async def _broadcast(payload: dict) -> None:
@@ -88,7 +88,8 @@ async def _broadcast(payload: dict) -> None:
         except asyncio.QueueFull:
             dead.append(q)
     for q in dead:
-        _sse_clients.remove(q)
+        if q in _sse_clients:
+            _sse_clients.remove(q)
 
 
 # ── Startup ───────────────────────────────────────────────────────────────────
@@ -141,32 +142,31 @@ async def health_feeds(stale_threshold_hours: float = 1.0, alert_threshold_hours
                 status     = "stale"
                 overall_ok = False
             else:
-                status = "ok"
+                status = "fresh"
+
             feeds[domain] = {
-                "status":          status,
-                "lag_seconds":     round(lag),
-                "lag_hours":       round(lag_h, 3),
-                "last_update":     domain_last[domain].isoformat(),
-                "cells_with_data": domain_cell_counts.get(domain, 0),
+                "status":       status,
+                "lag_seconds":  round(lag, 1),
+                "lag_hours":    round(lag_h, 2),
+                "last_event":   domain_last[domain].isoformat(),
+                "active_cells": domain_cell_counts.get(domain, 0),
             }
         else:
             feeds[domain] = {
-                "status":          "missing",
-                "lag_seconds":     None,
-                "lag_hours":       None,
-                "last_update":     None,
-                "cells_with_data": 0,
+                "status":       "missing",
+                "lag_seconds":  None,
+                "lag_hours":    None,
+                "last_event":   None,
+                "active_cells": 0,
             }
             overall_ok = False
 
-    unknown_count = sum(1 for c in all_cells().values() if c.is_unknown)
-
     return {
-        "overall":       "ok" if overall_ok else "degraded",
-        "feeds":         feeds,
-        "unknown_cells": unknown_count,
-        "total_cells":   len(all_cells()),
-        "timestamp":     now.isoformat(),
+        "feeds":                   feeds,
+        "overall_status":          "healthy" if overall_ok else "degraded",
+        "stale_threshold_hours":   stale_threshold_hours,
+        "alert_threshold_hours":   alert_threshold_hours,
+        "timestamp":               now.isoformat(),
     }
 
 
