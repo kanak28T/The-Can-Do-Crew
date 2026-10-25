@@ -1,0 +1,118 @@
+.stress-modal-backdrop {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.stress-modal-card {
+  width: 560px;
+  max-width: 95vw;
+  background: rgba(15, 23, 42, 0.96);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+}
+
+.stress-modal-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.stress-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stress-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.stress-slider {
+  width: 100%;
+  accent-color: #ef4444;
+  cursor: pointer;
+  height: 6px;
+}
+
+.stress-select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f8fafc;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.stress-select option {
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.stress-input-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.stress-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f8fafc;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.stress-input:focus {
+  border-color: #38bdf8;
+}
+
+.stress-action-btn {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border: none;
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.stress-action-btn:hover {
+  opacity: 0.9;
+}
+
+.stress-applied-banner {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.8rem;
+  color: #fca5a5;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
