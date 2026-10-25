@@ -1,0 +1,331 @@
+================================================================================
+                    URBANPULSE: SPEC DELIVERY COMPLETE
+================================================================================
+
+Date Generated: 2026-10-25
+Status: ✅ READY FOR APPROVAL & PHASE 0 START
+Branch: priyanshu (A1 Priyanshu working here)
+
+================================================================================
+                         📦 WHAT'S BEEN DELIVERED
+================================================================================
+
+THREE CORE SPECIFICATION DOCUMENTS (in .kiro/):
+────────────────────────────────────────────────────────────────────────────
+✅ requirements.md        (~400 lines)
+   • 7 user stories with EARS acceptance criteria
+   • 13 locked decisions (D1–D13)
+   • Non-functional requirements
+   • Scope tiers (MUST/SHOULD/COULD) + cut order
+
+✅ design.md             (~500 lines)
+   • System architecture diagram
+   • Data models (CanonicalEvent, CellState, RiskModel)
+   • 6 REST API contracts with full request/response schemas
+   • Sequence diagrams (event flow, road closure, replay)
+   • Baseline data table (real + simulated)
+   • Frontend component architecture
+   • Privacy model (k-merge, noise, FedAvg)
+
+✅ tasks.md              (~600 lines)
+   • Ordered, dependency-aware tasks for Phases 0–8
+   • Detailed Phase 0–1 breakdowns (Alpha & Beta)
+   • A1-specific checklist (~21 hours across 4 days)
+   • Cut order (Isolation Forest first; NEVER CUT list)
+
+SUPPORTING DOCUMENTS (in root):
+────────────────────────────────────────────────────────────────────────────
+✅ SPEC_SUMMARY.md       (~200 lines)
+   → 30-second overview; key assumptions; how to use spec
+
+✅ TEAM_KICKOFF.md       (~300 lines)
+   → Team roles; Day 1 blocker; success criteria; approval checklist
+
+✅ DAY0_SETUP.md         (~250 lines)
+   → Pre-Day-1 checklist; alignment meeting; environment setup
+
+✅ README_SPECS.md       (~400 lines)
+   → A1's comprehensive quick reference; all you need to know
+
+✅ SPEC_DELIVERY.txt     (this file)
+   → Final delivery summary
+
+================================================================================
+                           🎯 FOR YOU (A1)
+================================================================================
+
+YOUR ROLE: Backend Core + Spatial Engine (4 days, ~16–18 hours)
+
+Phase 0 (Day 1):  Docker + schema blocker + API stubs        [3–4 hours]
+Phase 1 (Day 2):  Dijkstra + cell state + scoring            [4–5 hours]
+Phase 2-3 (Day 3): Multi-domain + 60% loss + IoU             [4–5 hours]
+Phase 4-8 (Day 4): FedAvg + Red-Team + deploy + eval         [4–5 hours]
+
+THE BLOCKER (CRITICAL):
+────────────────────────────────────────────────────────────────────────────
+Task A0.3: Write contracts/event_schema.py with A2 (MUST commit by 01:00 UTC Day 1)
+
+This single file:
+• Defines canonical event structure (Pydantic, strict)
+• Is imported by all 4 team members
+• Blocks everything else: map, engine, simulator, API
+• Must be committed by 01:00 UTC Day 1 so team can proceed in parallel
+
+DELIVERABLES (What You Build):
+────────────────────────────────────────────────────────────────────────────
+✅ Backend (FastAPI + asyncio)
+   • POST /ingest (validate, reject PII, log, score)
+   • GET /sse/events (push live updates)
+   • GET /zones (return polygons + drivers)
+   • GET /dispatch, /health, /eval/results, /privacy/redteam
+
+✅ Engine (In-Memory + SQLite Log)
+   • Cell state with 48h decay
+   • Logistic risk model (β, γ ≥ 0)
+   • Multi-domain stress aggregation
+   • Road-graph isolation index (Dijkstra)
+   • Driver contributions (counterfactuals)
+   • 60% feed-loss resilience
+
+✅ Federated Learning (Day 4)
+   • 5 in-process zone nodes
+   • Custom FedAvg loop (~40 lines)
+
+✅ Evaluation (Day 4)
+   • IoU harness
+   • Red-Team attack script
+   • Results table
+
+✅ Deployment (Day 4)
+   • Docker + Docker Compose
+   • Railway/Fly.io deployment
+   • TLS, CORS, secrets management
+
+================================================================================
+                    🚀 HOW TO GET STARTED (DAY 0)
+================================================================================
+
+STEP 1: Read the Docs (45 min)
+────────────────────────────────────────────────────────────────────────────
+[] Read SPEC_SUMMARY.md                      [5 min]
+[] Read TEAM_KICKOFF.md                      [10 min]
+[] Read .kiro/requirements.md sections 2–4   [10 min]
+[] Read .kiro/design.md sections 2–3         [10 min]
+[] Read .kiro/tasks.md Phases 0–1 Alpha rows [10 min]
+
+STEP 2: Alignment Meeting (15 min, with A2/B1/B2)
+────────────────────────────────────────────────────────────────────────────
+[] Confirm 13 locked decisions (D1–D13)
+[] Confirm Day 1 blocker (event_schema.py)
+[] Confirm data handoffs
+[] Confirm API contracts
+[] Confirm evaluation rigor
+
+STEP 3: Get Stakeholder Sign-Off (before 00:00 UTC Day 1)
+────────────────────────────────────────────────────────────────────────────
+[] Organizer reads all 3 spec docs
+[] Organizer confirms MUST-HAVE scope
+[] Organizer signs approval in TEAM_KICKOFF.md
+
+STEP 4: Environment Setup (10 min)
+────────────────────────────────────────────────────────────────────────────
+[] Clone repo + switch to priyanshu branch
+[] Verify Python ≥ 3.10
+[] Verify Docker installed
+[] Verify git config (name, email)
+[] Verify push access to GitHub
+
+================================================================================
+                        📋 DAY 1 CHECKLIST (A1)
+================================================================================
+
+Day 1 00:00 UTC:  Register OpenCellID                        [5 min]
+Day 1 00:15 UTC:  Start event_schema.py with A2              [45 min]
+Day 1 01:00 UTC:  *** COMMIT event_schema.py ***             [2 min]
+                  (BLOCKER LIFTS; all tasks unblock)
+
+Day 1 01:05-16:00: Other Phase 0 tasks in parallel
+  [] Docker Compose setup                                    [45 min]
+  [] PII validator (with A2)                                 [45 min]
+  [] POST /ingest stub                                       [30 min]
+  [] GET /sse/events mock stream                             [30 min]
+  [] k-merge signature stub                                  [15 min]
+  [] (background) OSM road graph download                    [30 min]
+
+Day 1 16:00 UTC:  Phase 0 Exit Criteria
+  [] /ingest accepts valid events, rejects PII, logs to SQLite
+  [] /sse/events emits mock events every 3 sec
+  [] React map shell renders H3 hexes
+  [] Map subscribes to SSE stream
+  [] Integration test: POST event → cell colour changes on map
+  [] Footer: "Baseline data: real | Live feeds: simulated"
+  [] Docker Compose runs without errors
+
+================================================================================
+                    ✅ PHASE 0–1 SUCCESS CRITERIA
+================================================================================
+
+PHASE 0 EXIT (Day 1, 16:00 UTC):
+────────────────────────────────────────────────────────────────────────────
+Event → /ingest → cell colour changes on map (entire flow working)
+
+PHASE 1 EXIT (Day 2, 12:00 UTC):
+────────────────────────────────────────────────────────────────────────────
+Baseline map renders; remove one road edge → hospital_isolation changes
+(verified by unit test)
+
+================================================================================
+                    🔒 THE 13 LOCKED DECISIONS
+================================================================================
+
+These CANNOT be changed. If you think one should change, tell A1/organizer FIRST.
+
+D1  Pilot: Nagpur, Maharashtra (fixed geography)
+D2  H3 res-9 for scoring (~2,000 cells); res-8 for k-merge
+D3  In-memory state + append-only SQLite log
+D4  FastAPI + asyncio (no Streamlit)
+D5  React + MapLibre GL (no Vue, Leaflet, etc.)
+D6  Logistic model (β, γ ≥ 0) with interactions
+D7  Counterfactual drivers + expert causal graph
+D8  5 in-process federated nodes; 40-line custom FedAvg (no Flower)
+D9  Blind scenario owner; held-out families never fitted
+D10 Static source tiers (0.9/0.7/0.5/0.3); weighted fusion
+D11 Regex parsers (deterministic); optional LLM fallback
+D12 Population = dispatch priority only (NOT risk driver)
+D13 Persistent backend (Railway/Fly.io); frontend on Vercel/Netlify
+
+================================================================================
+                      💻 KEY TECHNOLOGIES
+================================================================================
+
+Backend:    FastAPI + asyncio + Pydantic (Python)
+Frontend:   React + Vite + MapLibre GL (JavaScript/TypeScript)
+Geospatial: OSM + H3 + NetworkX + rasterio
+Database:   SQLite (append-only log) + in-memory state
+Federated:  Custom loop (no Flower)
+Evaluation: Custom IoU harness + Red-Team attack script
+Deploy:     Docker + Docker Compose → Railway/Fly.io
+CI/CD:      Git + GitHub (branches: priyanshu, ashlesha, kanak, sanvi)
+
+================================================================================
+                       🎓 HOW TO USE THIS SPEC
+================================================================================
+
+For Daily Tasks:           Check tasks.md for your phase
+For Technical Decisions:   Check design.md for the spec'd choice
+For Acceptance Testing:    Check requirements.md for EARS criteria
+For Integration Points:    Check the phase exit criteria
+For Cut Decisions:         Check tasks.md cut order
+
+ALWAYS:  If you think something should change, flag it first (don't silently change)
+NEVER:   Commit without pulling latest from priyanshu
+NEVER:   Start Phase N before Phase N-1 exit gate passes
+
+================================================================================
+                        📞 WHO TO ASK FOR WHAT
+================================================================================
+
+"What's the event schema?"         → A2 (until committed), then read the file
+"How do I build /ingest?"          → Read design.md section 3.1, ask A1
+"What's the risk model?"           → Read design.md section 2.3, ask A2
+"Can I use library X?"             → Ask A1, escalate to organizer if blocked
+"I found a bug in the spec"        → Document + alert team + organizer
+"I'm stuck on task Y"              → Ask A2 (your pair) immediately
+"Can we change a locked decision?" → Ask organizer; answer is "not without replan"
+
+================================================================================
+                      ✨ FINAL CHECKLIST
+================================================================================
+
+Before You Start:
+  [] Read all 3 core spec docs
+  [] Read SPEC_SUMMARY.md + TEAM_KICKOFF.md
+  [] Alignment meeting complete
+  [] Stakeholder sign-off obtained
+  [] Environment set up (Python, Docker, git)
+  [] Can push to priyanshu branch
+  [] Understand the Day 1 blocker
+  [] Understand your A1 checklist
+  [] Understand the 13 locked decisions
+
+Ready to Go:
+  [] 🚀 You're ready for Day 1 at 00:00 UTC
+  [] 🚀 First task: Register OpenCellID (5 min)
+  [] 🚀 Second task: Start event_schema.py with A2 (45 min)
+  [] 🚀 Target: Commit event_schema.py by 01:00 UTC (BLOCKER)
+
+================================================================================
+                    🎯 SUCCESS METRICS
+================================================================================
+
+Day 1:  Schema committed → all tasks unblocked
+Day 2:  Baseline map renders → road closure impacts cell score
+Day 3:  All 6 domains score → 60% loss → grey cells; IoU A–C printed
+Day 4:  FedAvg trained → Red-Team scored → backend live → demo video
+
+================================================================================
+                        📍 DOCUMENT LOCATIONS
+================================================================================
+
+Repository Root:
+├── .kiro/
+│   ├── requirements.md      ← Core: what to build
+│   ├── design.md           ← Core: how to build
+│   └── tasks.md            ← Core: your daily tasks
+├── SPEC_SUMMARY.md         ← Quick overview
+├── TEAM_KICKOFF.md         ← Team alignment + blocker
+├── DAY0_SETUP.md           ← Pre-Day-1 checklist
+├── README_SPECS.md         ← A1's comprehensive reference
+└── SPEC_DELIVERY.txt       ← This file
+
+================================================================================
+                         📅 TIMELINE
+================================================================================
+
+Day 0 (before 00:00 UTC):  Read spec + alignment + sign-off
+Day 1 00:00 UTC:           OpenCellID registration (async)
+Day 1 00:15 UTC:           Start event_schema.py
+Day 1 01:00 UTC:           *** COMMIT event_schema.py ***
+Day 1 16:00 UTC:           Phase 0 exit (event → map works)
+Day 2 12:00 UTC:           Phase 1 exit (baseline + Dijkstra)
+Day 3 12:00 UTC:           Phase 3 exit (all 6 domains + resilience)
+Day 3 16:00 UTC:           Integration demo
+Day 4 12:00 UTC:           FedAvg + Red-Team + eval complete
+Day 4 18:00 UTC:           Backend/frontend live; demo video; results
+
+================================================================================
+                       ✅ APPROVAL STATUS
+================================================================================
+
+Specs Generated:     ✅ Yes
+Ready for Review:    ✅ Yes
+Ready for Dev:       ⏳ Awaiting stakeholder sign-off
+Phase 0 Start:       ⏳ After Day 0 sign-off & team alignment
+
+NEXT STEPS:
+  1. Stakeholder reads all 3 spec docs (30 min)
+  2. Team meets for alignment (15 min)
+  3. Stakeholder signs TEAM_KICKOFF.md approval checklist
+  4. Day 1 begins at 00:00 UTC
+
+================================================================================
+                    🚀 YOU'RE READY TO GO!
+================================================================================
+
+Branch:  priyanshu
+Status:  ✅ READY
+Start:   Day 1 00:00 UTC (after stakeholder sign-off)
+
+Your Mission (A1):
+  • Day 1: Schema blocker + API stubs (3–4 hours)
+  • Day 2: Dijkstra + scoring + integration (4–5 hours)
+  • Day 3: Multi-domain + resilience + IoU (4–5 hours)
+  • Day 4: FedAvg + Red-Team + deploy (4–5 hours)
+
+Total: ~16–18 hours over 4 days. Achievable. Do good work. 💪
+
+================================================================================
+Generated: 2026-10-25
+Branch: priyanshu
+Status: DELIVERY COMPLETE ✅
+================================================================================
