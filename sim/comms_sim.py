@@ -5,7 +5,7 @@ from typing import List
 
 with open("data/mapping_tables/tower_cells.json") as f:
     TOWER_CELLS: dict = json.load(f)
-TOWERS = [k for k in TOWER_CELLS if not k.startswith("_")]
+TOWERS = [k for k in TOWER_CELLS if not k.startswith("_") and TOWER_CELLS[k]]
 
 
 def _event(domain, event_type, entity_id, h3_cell, severity, source_type, scenario_tag=None):

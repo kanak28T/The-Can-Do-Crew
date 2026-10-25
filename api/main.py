@@ -302,9 +302,17 @@ async def get_zones(risk_min: float = 0.65, include_unknown: bool = False):
             })
             contributor_counts[cell.h3_cell] = len(cell.source_types)
 
-    # Apply k-merge privacy enforcement
+    # Apply k-merge and WorldPop population floor privacy enforcement
     privacy_k = int(os.getenv("PRIVACY_K", "5"))
-    zones = apply_k_merge(raw_zones, contributor_counts, k=privacy_k)
+    pop_floor = float(os.getenv("PRIVACY_POP_FLOOR", "500.0"))
+    populations = {c: bf.population for c, bf in ENGINE.baseline.items()}
+    zones = apply_k_merge(
+        raw_zones,
+        contributor_counts,
+        populations=populations,
+        k=privacy_k,
+        min_population=pop_floor,
+    )
 
     zones_out = sorted(
         [z.__dict__ if hasattr(z, "__dict__") else z for z in zones],
@@ -317,6 +325,7 @@ async def get_zones(risk_min: float = 0.65, include_unknown: bool = False):
         unknown = _collect_unknown_cells()
         result["unknown_zones"] = unknown
         result["unknown_count"] = len(unknown)
+
 
     return result
 
@@ -400,6 +409,17 @@ async def get_cell_detail(h3_cell: str):
         "last_seen":      max(cell.last_updated.values()).isoformat()
                           if cell.last_updated else None,
     }
+
+
+# ── Evaluation ────────────────────────────────────────────────────────────────
+@app.get("/eval/results")
+async def get_eval_results(scenario: str = "contracts/scenario_format.yaml"):
+    """
+    Run IoU evaluation harness against scenario ground truth and return metrics.
+    """
+    from eval.iou_harness import evaluate_scenario
+    metrics = evaluate_scenario(scenario)
+    return metrics.to_dict()
 
 
 # ── SSE stream ────────────────────────────────────────────────────────────────
