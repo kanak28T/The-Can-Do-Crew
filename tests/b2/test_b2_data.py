@@ -163,8 +163,8 @@ def test_grid_geojson_contract():
 def test_canonical_grid_validation():
     """Verify canonical data/nagpur_h3_res9.geojson:
     - Exists and is valid JSON
-    - Contains exactly 10,776 features
-    - Properties are 'cell' and 'resolution'
+    - Real NMC boundary has 2,001 cells (or fallback 10,776)
+    - Properties are strictly 'cell' and 'resolution'
     - Every feature has resolution 9
     - Every cell value is a valid H3 cell at resolution 9
     - All cell IDs are unique
@@ -177,7 +177,7 @@ def test_canonical_grid_validation():
 
     gj = b2lib.read_json(path)
     features = gj.get("features", [])
-    assert len(features) == 10776, f"Expected 10776 features, got {len(features)}"
+    assert len(features) in (2001, 10776), f"Unexpected feature count: {len(features)}"
 
     cells = []
     for f in features:
@@ -200,12 +200,13 @@ def test_canonical_grid_validation():
             assert h3.get_resolution(cell) == 9
             assert h3.get_resolution(parent) == 8
 
-    assert len(set(cells)) == 10776, f"Expected 10776 unique cells, got {len(set(cells))}"
+    assert len(set(cells)) == len(features), f"Duplicates found in cell list"
 
     # Verify load_grid_cells loads canonical grid correctly without legacy properties
     loaded = b2lib.load_grid_cells(path)
-    assert len(loaded) == 10776
+    assert len(loaded) == len(features)
     assert loaded == sorted(cells)
+
 
 
 @pytest.mark.skipif(not REAL_H3, reason="needs the real h3 package")
