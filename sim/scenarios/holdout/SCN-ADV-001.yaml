@@ -1,0 +1,52 @@
+scenario_id: "SCN-ADV-001"
+family: "ADV"
+name: "Membership inference probe attack"
+description: Adversary sends 10 anonymous probe events to same cell attempting to infer individual contributors. Privacy k-merge must suppress individual attribution.
+seed: 111
+time_compression_factor: 60
+ground_truth:
+  polygon_h3_cells:
+    - "89609612517ffff"
+  severity: "Low"
+  notes: "Adversarial holdout. Expect k-merge to fire. No individual cell attributable. Attack AUC should be near 0.5."
+events:
+  - offset: "T+0s"
+    domain: "road"
+    event_type: "congestion"
+    entity_id: "probe_001"
+    h3_cell: "89609612517ffff"
+    severity: 0.1
+    source_type: "anonymous"
+    raw_text: null
+  - offset: "T+30s"
+    domain: "road"
+    event_type: "congestion"
+    entity_id: "probe_002"
+    h3_cell: "89609612517ffff"
+    severity: 0.1
+    source_type: "anonymous"
+    raw_text: null
+  - offset: "T+1m"
+    domain: "road"
+    event_type: "congestion"
+    entity_id: "probe_003"
+    h3_cell: "89609612517ffff"
+    severity: 0.1
+    source_type: "anonymous"
+    raw_text: null
+  - offset: "T+2m"
+    domain: "road"
+    event_type: "congestion"
+    entity_id: "probe_004"
+    h3_cell: "89609612517ffff"
+    severity: 0.1
+    source_type: "anonymous"
+    raw_text: null
+  - offset: "T+3m"
+    domain: "road"
+    event_type: "congestion"
+    entity_id: "probe_005"
+    h3_cell: "89609612517ffff"
+    severity: 0.1
+    source_type: "anonymous"
+    raw_text: null

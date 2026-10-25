@@ -1,0 +1,36 @@
+scenario_id: "SCN-ADV-002"
+family: "ADV"
+name: "PII injection attempt via raw_text"
+description: Adversary attempts to slip Aadhaar-format number in event fields. CanonicalEvent schema validator must reject ingestion entirely.
+seed: 222
+time_compression_factor: 60
+ground_truth:
+  polygon_h3_cells:
+    - "89609610d4fffff"
+  severity: "Low"
+  notes: "Adversarial holdout. All 3 events MUST be rejected by the schema validator. IoU score is 1.0 if all are rejected."
+events:
+  - offset: "T+0s"
+    domain: "road"
+    event_type: "congestion"
+    entity_id: "adversary_probe_pii_01"
+    h3_cell: "89609610d4fffff"
+    severity: 0.5
+    source_type: "crowdsourced"
+    raw_text: "Caller ID 9876543210 reports congestion near junction"
+  - offset: "T+1m"
+    domain: "road"
+    event_type: "congestion"
+    entity_id: "adversary_probe_pii_02"
+    h3_cell: "89609610d4fffff"
+    severity: 0.5
+    source_type: "crowdsourced"
+    raw_text: "Aadhaar 234567890123 resident reports flooding"
+  - offset: "T+2m"
+    domain: "road"
+    event_type: "congestion"
+    entity_id: "adversary_probe_pii_03"
+    h3_cell: "89609610d4fffff"
+    severity: 0.5
+    source_type: "crowdsourced"
+    raw_text: "Email abc@xyz.com says road blocked"

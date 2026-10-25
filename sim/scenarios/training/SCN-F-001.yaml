@@ -1,0 +1,48 @@
+scenario_id: "SCN-F-001"
+family: "F"
+name: "60 percent feed loss across all domains"
+description: Abrupt 60 percent random feed loss across all domains at T+0. Tests unknown-state rendering and confidence decay.
+seed: 99
+time_compression_factor: 60
+ground_truth:
+  polygon_h3_cells:
+    - "89609688b63ffff"
+    - "89609688b7bffff"
+    - "8960968dd53ffff"
+    - "8960968dc27ffff"
+  severity: "High"
+  notes: "Pump P02 and feeder F01 zones. Should go Unknown as feeds cut."
+events:
+  - offset: "T+0s"
+    domain: "water"
+    event_type: "pump_failure"
+    entity_id: "pump_P02"
+    h3_cell: "89609688b63ffff"
+    severity: 0.9
+    source_type: "official"
+    raw_text: null
+  - offset: "T+15m"
+    domain: "power"
+    event_type: "blackout"
+    entity_id: "feeder_F01"
+    h3_cell: "8960968dd53ffff"
+    severity: 1.0
+    source_type: "official"
+    raw_text: null
+  - offset: "T+30m"
+    domain: "transit"
+    event_type: "route_cancelled"
+    entity_id: "route_1"
+    h3_cell: "89609612517ffff"
+    severity: 0.85
+    source_type: "official"
+    raw_text: null
+feed_loss:
+  - offset: "T+0s"
+    pattern: "random_streams"
+    domain: "all"
+    fraction: 0.60
+  - offset: "T+2h"
+    pattern: "whole_domain"
+    domain: "transit"
+    fraction: 0.60

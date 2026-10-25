@@ -1,0 +1,48 @@
+scenario_id: "SCN-D-001"
+family: "D"
+name: "Construction block slow-build compound failure"
+description: F03 feeder degrades plus pump P04 low pressure plus route 2 gradual suspension. Slow compound failure over 2.5 hours.
+seed: 21
+time_compression_factor: 60
+ground_truth:
+  polygon_h3_cells:
+    - "8960961742fffff"
+    - "8960961742bffff"
+    - "89609612cafffff"
+    - "89609612cabffff"
+    - "89609610c27ffff"
+  severity: "High"
+  notes: "Holdout scenario. F03 feeder, pump P04, and route_2 overlap zone."
+events:
+  - offset: "T+0s"
+    domain: "power"
+    event_type: "voltage_drop"
+    entity_id: "feeder_F03"
+    h3_cell: "8960961742fffff"
+    severity: 0.65
+    source_type: "sensor"
+    raw_text: null
+  - offset: "T+1h"
+    domain: "water"
+    event_type: "pressure_drop"
+    entity_id: "pump_P04"
+    h3_cell: "89609612cafffff"
+    severity: 0.55
+    source_type: "sensor"
+    raw_text: null
+  - offset: "T+1h30m"
+    domain: "transit"
+    event_type: "severe_delay"
+    entity_id: "route_2"
+    h3_cell: "89609610c27ffff"
+    severity: 0.7
+    source_type: "sensor"
+    raw_text: null
+  - offset: "T+2h30m"
+    domain: "transit"
+    event_type: "route_cancelled"
+    entity_id: "route_2"
+    h3_cell: "89609610c1bffff"
+    severity: 0.9
+    source_type: "official"
+    raw_text: "Route 2 cancelled due to construction site spillover"

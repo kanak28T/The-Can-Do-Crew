@@ -1,0 +1,72 @@
+scenario_id: "SCN-I-001"
+family: "I"
+name: "Multi-domain cascade - power water transit health"
+description: Full cascade starting with F07 voltage drop, leading to pump P04 failure, route 2 suspension, and NMC hospital at capacity.
+seed: 88
+time_compression_factor: 60
+ground_truth:
+  polygon_h3_cells:
+    - "89609610d4fffff"
+    - "89609610d4bffff"
+    - "89609612cafffff"
+    - "89609612cabffff"
+    - "89609610c27ffff"
+    - "89609610c1bffff"
+    - "8960968de2fffff"
+  severity: "High"
+  notes: "F07 feeder, pump P04, route 2, and NMC hospital cells. Full cascade zone."
+events:
+  - offset: "T+0s"
+    domain: "power"
+    event_type: "voltage_drop"
+    entity_id: "feeder_F07"
+    h3_cell: "89609610d4fffff"
+    severity: 0.75
+    source_type: "sensor"
+    raw_text: null
+  - offset: "T+30m"
+    domain: "power"
+    event_type: "blackout"
+    entity_id: "feeder_F07"
+    h3_cell: "89609610d4bffff"
+    severity: 1.0
+    source_type: "official"
+    raw_text: null
+  - offset: "T+45m"
+    domain: "water"
+    event_type: "pump_failure"
+    entity_id: "pump_P04"
+    h3_cell: "89609612cafffff"
+    severity: 0.9
+    source_type: "sensor"
+    raw_text: "Pump P04 offline no power from F07"
+  - offset: "T+1h"
+    domain: "transit"
+    event_type: "route_cancelled"
+    entity_id: "route_2"
+    h3_cell: "89609610c27ffff"
+    severity: 0.85
+    source_type: "official"
+    raw_text: "Route 2 suspended flooding and road damage"
+  - offset: "T+1h30m"
+    domain: "health"
+    event_type: "capacity_critical"
+    entity_id: "nmc_hospital"
+    h3_cell: "8960968de2fffff"
+    severity: 0.90
+    source_type: "official"
+    raw_text: null
+decoys:
+  - offset: "T+20m"
+    domain: "comms"
+    event_type: "signal_degraded"
+    entity_id: "tower_T02"
+    h3_cell: "89609612863ffff"
+    severity: 0.25
+    source_type: "sensor"
+    raw_text: null
+feed_loss:
+  - offset: "T+2h"
+    pattern: "random_streams"
+    domain: "all"
+    fraction: 0.25
