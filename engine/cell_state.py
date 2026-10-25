@@ -13,9 +13,9 @@ Cells with confidence < UNKNOWN_THRESHOLD show as grey Unknown on the map.
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Dict, List
+from typing import Dict, List, Optional
 
-from engine.confidence import compute_confidence, is_unknown, UNKNOWN_THRESHOLD
+from engine.confidence import compute_confidence, is_unknown, UNKNOWN_THRESHOLD, STALE_HOURS
 
 # ── Decay half-lives per domain (hours) ───────────────────────────────────────
 # Power outages linger; crowd reports fade fast
@@ -27,8 +27,9 @@ DECAY_HALF_LIFE_HOURS: Dict[str, float] = {
     "health":   8.0,
     "comms":    4.0,
 }
-DEFAULT_HALF_LIFE    = 12.0
-STALE_THRESHOLD_HOURS = 12.0
+DEFAULT_HALF_LIFE     = 12.0
+STALE_THRESHOLD_HOURS = STALE_HOURS
+UNKNOWN_CONFIDENCE_THRESHOLD = UNKNOWN_THRESHOLD
 
 
 @dataclass
@@ -36,22 +37,24 @@ class CellState:
     h3_cell: str
 
     # Per-domain live stress (0–1), decayed toward 0 over time
-    domain_stress:  Dict[str, float]   = field(default_factory=dict)
+    domain_stress:   Dict[str, float]    = field(default_factory=dict)
     # When each domain was last updated
-    last_updated:   Dict[str, datetime] = field(default_factory=dict)
+    last_updated:    Dict[str, datetime] = field(default_factory=dict)
     # Source types that reported in the current window (for coverage calc)
-    source_types:   List[str]           = field(default_factory=list)
+    source_types:    List[str]           = field(default_factory=list)
     # Raw stress values from each source (for agreement calc)
-    source_stresses: List[float]        = field(default_factory=list)
+    source_stresses: List[float]         = field(default_factory=list)
 
     # Confidence: set by update_confidence() after each ingest
-    confidence:  float = 1.0
+    confidence:    float = 1.0
     # Cached risk score — set by engine.py after re-scoring
-    risk:        float  = 0.0
-    risk_label:  str    = "low"
+    risk:          float = 0.0
+    risk_label:    str   = "low"
     risk_interval: tuple = (0.0, 1.0)
     # Grey Unknown state
-    is_unknown:  bool   = False
+    is_unknown:    bool  = False
+    # "stale" | "low_confidence" | None
+    unknown_reason: Optional[str] = None
 
     @property
     def decayed_stress(self) -> Dict[str, float]:
@@ -91,8 +94,9 @@ class CellState:
         Sets is_unknown when confidence is too low.
         """
         if not self.last_updated:
-            self.confidence = 0.0
-            self.is_unknown = True
+            self.confidence  = 0.0
+            self.is_unknown  = True
+            self.unknown_reason = "low_confidence"
             return
 
         most_recent = max(self.last_updated.values())
@@ -103,16 +107,72 @@ class CellState:
         )
         self.is_unknown = is_unknown(self.confidence)
 
+        # Set reason
+        if self.is_unknown:
+            now = datetime.now(timezone.utc)
+            any_recent = any(
+                (now - t).total_seconds() / 3600 < STALE_THRESHOLD_HOURS
+                for t in self.last_updated.values()
+            )
+            self.unknown_reason = "stale" if not any_recent else "low_confidence"
+        else:
+            self.unknown_reason = None
+
+    # ── Phase 3 helpers ────────────────────────────────────────────────────────
+
+    def check_unknown(self) -> None:
+        """Check whether cell should be marked Unknown due to staleness or low confidence."""
+        if not self.last_updated:
+            self.confidence = 0.0
+            self.is_unknown = True
+            self.unknown_reason = "low_confidence"
+            return
+
+        now = datetime.now(timezone.utc)
+        any_recent = any(
+            (now - t).total_seconds() / 3600 < STALE_THRESHOLD_HOURS
+            for t in self.last_updated.values()
+        )
+        if not any_recent:
+            self.is_unknown = True
+            self.unknown_reason = "stale"
+            return
+
+        if self.source_types:
+            self.update_confidence()
+        else:
+            self.is_unknown = is_unknown(self.confidence)
+            self.unknown_reason = "low_confidence" if self.is_unknown else None
+
+
+    def stale_domains(self) -> Dict[str, float]:
+        """Return {domain: hours_stale} for domains older than STALE_THRESHOLD_HOURS."""
+        now = datetime.now(timezone.utc)
+        return {
+            d: round((now - ts).total_seconds() / 3600, 2)
+            for d, ts in self.last_updated.items()
+            if (now - ts).total_seconds() / 3600 >= STALE_THRESHOLD_HOURS
+        }
+
+    def fresh_domains(self) -> List[str]:
+        """Return list of domains updated within the stale threshold."""
+        now = datetime.now(timezone.utc)
+        return [
+            d for d, ts in self.last_updated.items()
+            if (now - ts).total_seconds() / 3600 < STALE_THRESHOLD_HOURS
+        ]
+
     def to_dict(self) -> dict:
         """Snapshot for SSE broadcast and API response."""
         return {
-            "cell":       self.h3_cell,
-            "risk":       self.risk,
-            "label":      "unknown" if self.is_unknown else self.risk_label,
-            "interval":   list(self.risk_interval),
-            "confidence": self.confidence,
-            "stress":     self.decayed_stress,
-            "is_unknown": self.is_unknown,
+            "cell":           self.h3_cell,
+            "risk":           self.risk,
+            "label":          "unknown" if self.is_unknown else self.risk_label,
+            "interval":       list(self.risk_interval),
+            "confidence":     self.confidence,
+            "stress":         self.decayed_stress,
+            "is_unknown":     self.is_unknown,
+            "unknown_reason": self.unknown_reason,
         }
 
 
