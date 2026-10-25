@@ -1,0 +1,18 @@
+scenario_id: SCN-H-001
+family: H
+name: Economically constrained zone crowd source only
+description: See scenario_format.yaml for field definitions.
+seed: 8
+time_compression_factor: 60
+ground_truth:
+  polygon_h3_cells:
+    - 89609612577ffff
+    - 89609612573ffff
+    - 89609612563ffff
+    - 89609612567ffff
+  severity: Medium
+  notes: Authored by B2 Sanvi. Real NMC H3 res-9 cells from nagpur_h3_res9.geojson.
+events: []
+decoys: []
+feed_loss: []
+contradictions: []

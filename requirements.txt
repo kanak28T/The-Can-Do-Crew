@@ -1,38 +1,31 @@
 # UrbanPulse — Python dependencies
 # Reconciled from kanak + priyanshu branches.
-# Verified working on: Python 3.14.2, Windows 11
-#
-# WINDOWS INSTALL NOTE:
-#   Use 'python -m pip' (not 'pip') if pip is not on PATH.
-#   h3, rasterio, shapely require --prefer-binary on Windows:
-#     python -m pip install h3==4.5.0 rasterio shapely --prefer-binary
-#
-# Full install:
-#   python -m pip install -r requirements.txt --prefer-binary
+# Verified working on: Python 3.13 / 3.14, Windows 11
 
 # ── Core backend ──────────────────────────────────────────────────────────────
 fastapi>=0.104.1
 uvicorn[standard]>=0.24.0
 pydantic>=2.5.0
-python-dotenv>=1.0.0      # Priyanshu: reads .env for OPENCELLID_API_KEY etc.
+python-dotenv>=1.0.0
+requests>=2.28.0
 
 # ── Geospatial ────────────────────────────────────────────────────────────────
-h3==4.5.0                 # must be 4.5.0 — only version with Python 3.14 wheel
+h3>=3.7.0
 geopandas>=1.0.1
-shapely>=2.2.0            # --prefer-binary required on Windows
-rasterio>=1.3.9           # --prefer-binary required on Windows
-osmnx>=1.7.1              # Priyanshu (A1) — road graph
+shapely>=2.0.0
+rasterio>=1.3.0
+osmnx>=1.7.1
 networkx>=3.2
 pyproj>=3.7.0
 
-# ── Data ─────────────────────────────────────────────────────────────────────
-pandas>=2.2.3
+# ── Data & ML ─────────────────────────────────────────────────────────────────
+pandas>=2.0.0
 numpy>=1.24.3
-scikit-learn>=1.6.0
+scikit-learn>=1.4.0
 
 # ── Simulation / evaluation ───────────────────────────────────────────────────
-pyyaml>=6.0.2
+pyyaml>=6.0.0
 
 # ── Dev / testing ─────────────────────────────────────────────────────────────
-pytest>=8.3.4
-httpx>=0.28.1             # FastAPI TestClient
+pytest>=8.0.0
+httpx>=0.28.0

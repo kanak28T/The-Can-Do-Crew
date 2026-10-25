@@ -1,0 +1,19 @@
+scenario_id: SCN-A-001
+family: A
+name: Road closure and transit suspension
+description: See scenario_format.yaml for field definitions.
+seed: 42
+time_compression_factor: 60
+ground_truth:
+  polygon_h3_cells:
+    - 8960961742fffff
+    - 8960961742bffff
+    - 89609617093ffff
+    - 8960961233bffff
+    - 8960961230fffff
+  severity: High
+  notes: Authored by B2 Sanvi. Real NMC H3 res-9 cells from nagpur_h3_res9.geojson.
+events: []
+decoys: []
+feed_loss: []
+contradictions: []

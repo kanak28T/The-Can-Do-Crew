@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: urbanpulse-api
+    env: python
+    region: singapore
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn api.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: PRIVACY_K
+        value: "5"
+      - key: PRIVACY_POP_FLOOR
+        value: "500"

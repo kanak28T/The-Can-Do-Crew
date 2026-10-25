@@ -6,8 +6,8 @@ Authors : Priyanshu (A1) — base structure, DB, SSE, routes
 
 Phase 0 : /ingest stub + /sse/events mock
 Phase 1 : cell_state + risk_model + engine orchestrator live
-Phase 3 : zone builder, driver contributions, dispatch log
-Phase 4 : CORS locked to frontend origin
+Phase 2 : road-closure detection, /zones enhanced
+Phase 3 : /zones/unknown, /cell/{h3}, enhanced /health/feeds, is_unknown in SSE
 """
 
 import asyncio
@@ -37,7 +37,7 @@ app = FastAPI(title="UrbanPulse API", version=SCHEMA_VERSION)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv("CORS_ORIGIN", "*")],   # Day 4: set CORS_ORIGIN env var
+    allow_origins=[os.getenv("CORS_ORIGIN", "*")],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -64,7 +64,7 @@ def _init_db():
             h3_cell             TEXT NOT NULL,
             severity            REAL NOT NULL,
             source_type         TEXT NOT NULL,
-            source_reliability  REAL NOT NULL,
+            source_reliability REAL NOT NULL,
             event_timestamp     TEXT NOT NULL,
             ingestion_timestamp TEXT NOT NULL,
             parse_confidence    REAL NOT NULL,
@@ -88,7 +88,8 @@ async def _broadcast(payload: dict) -> None:
         except asyncio.QueueFull:
             dead.append(q)
     for q in dead:
-        _sse_clients.remove(q)
+        if q in _sse_clients:
+            _sse_clients.remove(q)
 
 
 # ── Startup ───────────────────────────────────────────────────────────────────
@@ -110,26 +111,63 @@ async def health():
 
 
 @app.get("/health/feeds")
-async def health_feeds():
-    """Per-domain feed freshness — used by the frontend status bar."""
+async def health_feeds(stale_threshold_hours: float = 1.0, alert_threshold_hours: float = 6.0):
+    """
+    Per-domain feed freshness with configurable staleness thresholds.
+
+    stale_threshold_hours:  lag > this → status "stale"    (default 1h)
+    alert_threshold_hours:  lag > this → status "critical"  (default 6h)
+    """
     now = datetime.now(timezone.utc)
     domain_last: dict = {}
+    domain_cell_counts: dict = {}
+
     for cell in all_cells().values():
         for domain, ts in cell.last_updated.items():
             if domain not in domain_last or ts > domain_last[domain]:
                 domain_last[domain] = ts
+            domain_cell_counts[domain] = domain_cell_counts.get(domain, 0) + 1
 
     feeds = {}
+    overall_ok = True
+
     for domain in ["power", "transit", "water", "health", "comms", "road"]:
         if domain in domain_last:
-            lag = round((now - domain_last[domain]).total_seconds())
+            lag   = (now - domain_last[domain]).total_seconds()
+            lag_h = lag / 3600
+            if lag_h > alert_threshold_hours:
+                status     = "critical"
+                overall_ok = False
+            elif lag_h > stale_threshold_hours:
+                status     = "stale"
+                overall_ok = False
+            else:
+                status = "fresh"
+
             feeds[domain] = {
-                "status":      "ok" if lag < 3600 else "stale",
-                "lag_seconds": lag,
+                "status":       status,
+                "lag_seconds":  round(lag, 1),
+                "lag_hours":    round(lag_h, 2),
+                "last_event":   domain_last[domain].isoformat(),
+                "active_cells": domain_cell_counts.get(domain, 0),
             }
         else:
-            feeds[domain] = {"status": "missing", "lag_seconds": None}
-    return {"feeds": feeds}
+            feeds[domain] = {
+                "status":       "missing",
+                "lag_seconds":  None,
+                "lag_hours":    None,
+                "last_event":   None,
+                "active_cells": 0,
+            }
+            overall_ok = False
+
+    return {
+        "feeds":                   feeds,
+        "overall_status":          "healthy" if overall_ok else "degraded",
+        "stale_threshold_hours":   stale_threshold_hours,
+        "alert_threshold_hours":   alert_threshold_hours,
+        "timestamp":               now.isoformat(),
+    }
 
 
 # ── Ingest ────────────────────────────────────────────────────────────────────
@@ -139,8 +177,9 @@ async def ingest(request: Request):
     Accept a canonical event.
     1. Validate schema + reject PII (Pydantic)
     2. Log to SQLite (append-only)
-    3. ENGINE.process_event() — updates cell state, recomputes risk
-    4. Broadcast result to SSE stream
+    3. Handle road-closure cascade (Phase 2)
+    4. ENGINE.process_event() — updates cell state, recomputes risk + confidence
+    5. Broadcast result to SSE stream
     """
     try:
         body = await request.json()
@@ -154,8 +193,10 @@ async def ingest(request: Request):
         event = CanonicalEvent(**body)
     except ValidationError as exc:
         errors = exc.errors()
-        pii = any("PII" in str(e.get("msg", "")) or "Forbidden" in str(e.get("msg", ""))
-                  for e in errors)
+        pii = any(
+            "PII" in str(e.get("msg", "")) or "Forbidden" in str(e.get("msg", ""))
+            for e in errors
+        )
         return JSONResponse(
             status_code=422,
             content={
@@ -166,18 +207,21 @@ async def ingest(request: Request):
         )
 
     # Append-only event log
+    domain_val = event.domain if isinstance(event.domain, str) else event.domain.value
+    src_val    = event.source_type if isinstance(event.source_type, str) else event.source_type.value
+
     conn = _get_db()
     try:
         conn.execute(
             "INSERT OR IGNORE INTO events VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 event.event_id,
-                event.domain,
-                event.event_type,
+                domain_val,
+                event.event_type if isinstance(event.event_type, str) else event.event_type.value,
                 event.entity_id,
                 event.h3_cell,
                 event.severity,
-                event.source_type,
+                src_val,
                 event.source_reliability,
                 event.event_timestamp.isoformat(),
                 event.ingestion_timestamp.isoformat(),
@@ -190,21 +234,28 @@ async def ingest(request: Request):
     finally:
         conn.close()
 
-    # Engine processes the event (cell state + risk score + confidence)
+    # Phase 2: road-closure detection (Dijkstra recompute stub)
+    if domain_val == "road" and event.event_type in ("road_closed", "accident", "flooding"):
+        print(f"⚠️  Road closure in {event.h3_cell} — "
+              f"Dijkstra recompute ready (requires nagpur_roads.graphml)")
+
+    # Engine processes the event (cell state + confidence + risk score)
     result = ENGINE.process_event(event)
 
     # SSE broadcast
     await _broadcast({
-        "event":      "cell_updated",
-        "cell":       result.cell,
-        "domain":     result.domain,
-        "severity":   result.severity,
-        "risk":       result.risk,
-        "label":      "unknown" if result.is_unknown else result.label,
-        "interval":   list(result.interval),
-        "confidence": result.confidence,
-        "is_unknown": result.is_unknown,
-        "timestamp":  result.timestamp,
+        "event":          "cell_updated",
+        "cell":           result.cell,
+        "domain":         result.domain,
+        "severity":       result.severity,
+        "risk":           result.risk,
+        "label":          "unknown" if result.is_unknown else result.label,
+        "interval":       list(result.interval),
+        "confidence":     result.confidence,
+        "is_unknown":     result.is_unknown,
+        "unknown_reason": all_cells().get(result.cell, None) and
+                          all_cells()[result.cell].unknown_reason,
+        "timestamp":      result.timestamp,
     })
 
     return {
@@ -222,41 +273,153 @@ async def ingest(request: Request):
 
 # ── Zones ─────────────────────────────────────────────────────────────────────
 @app.get("/zones")
-async def get_zones(risk_min: float = 0.65):
+async def get_zones(risk_min: float = 0.65, include_unknown: bool = False):
     """
     Return all High-risk cells as zone objects.
     Applies k-merge before returning (privacy enforcement).
+    Pass include_unknown=true to also receive Unknown zones in the response.
     """
     from engine.risk_model import MODEL
 
-    raw_zones = []
-    contributor_counts: dict[str, int] = {}
+    raw_zones          = []
+    contributor_counts = {}
 
     for cell in all_cells().values():
-        if cell.risk >= risk_min and not cell.is_unknown:
+        if cell.is_unknown:
+            continue
+        if cell.risk >= risk_min:
             baseline = ENGINE._get_baseline_dict(cell.h3_cell)
             drivers  = MODEL.driver_contributions(cell.decayed_stress, baseline)
             raw_zones.append({
-                "cell_id":    cell.h3_cell,
-                "risk_score": cell.risk,
-                "label":      cell.risk_label,
-                "interval":   list(cell.risk_interval),
-                "confidence": cell.confidence,
+                "cell_id":              cell.h3_cell,
+                "risk_score":           cell.risk,
+                "label":                cell.risk_label,
+                "interval":             list(cell.risk_interval),
+                "confidence":           cell.confidence,
                 "driver_contributions": drivers,
-                "stress":     cell.decayed_stress,
+                "stress":               cell.decayed_stress,
+                "is_unknown":           False,
             })
             contributor_counts[cell.h3_cell] = len(cell.source_types)
 
-    # Apply k-merge privacy enforcement
+    # Apply k-merge and WorldPop population floor privacy enforcement
     privacy_k = int(os.getenv("PRIVACY_K", "5"))
-    zones = apply_k_merge(raw_zones, contributor_counts, k=privacy_k)
+    pop_floor = float(os.getenv("PRIVACY_POP_FLOOR", "500.0"))
+    populations = {c: bf.population for c, bf in ENGINE.baseline.items()}
+    zones = apply_k_merge(
+        raw_zones,
+        contributor_counts,
+        populations=populations,
+        k=privacy_k,
+        min_population=pop_floor,
+    )
 
     zones_out = sorted(
         [z.__dict__ if hasattr(z, "__dict__") else z for z in zones],
         key=lambda z: z.get("risk_score", 0),
         reverse=True,
     )
-    return {"zones": zones_out, "count": len(zones_out)}
+    result = {"zones": zones_out, "count": len(zones_out)}
+
+    if include_unknown:
+        unknown = _collect_unknown_cells()
+        result["unknown_zones"] = unknown
+        result["unknown_count"] = len(unknown)
+
+
+    return result
+
+
+@app.get("/zones/unknown")
+async def get_unknown_zones():
+    """Return all cells in Unknown state with reason and staleness details."""
+    unknown = _collect_unknown_cells()
+    return {"zones": unknown, "count": len(unknown)}
+
+
+def _collect_unknown_cells() -> list:
+    now = datetime.now(timezone.utc)
+    result = []
+    for cell in all_cells().values():
+        if not cell.is_unknown:
+            continue
+        domain_ages = {
+            d: round((now - ts).total_seconds() / 3600, 2)
+            for d, ts in cell.last_updated.items()
+        }
+        result.append({
+            "cell":             cell.h3_cell,
+            "is_unknown":       True,
+            "unknown_reason":   cell.unknown_reason,
+            "confidence":       cell.confidence,
+            "risk":             cell.risk,
+            "fresh_domains":    cell.fresh_domains(),
+            "stale_domains":    cell.stale_domains(),
+            "domain_age_hours": domain_ages,
+            "last_seen":        max(cell.last_updated.values()).isoformat()
+                                if cell.last_updated else None,
+        })
+    return result
+
+
+# ── Cell detail ───────────────────────────────────────────────────────────────
+@app.get("/cell/{h3_cell}")
+async def get_cell_detail(h3_cell: str):
+    """
+    Full detail for a single H3 cell — used by frontend click-to-inspect panel.
+    Returns risk, confidence, per-domain stress, unknown state, and staleness.
+    """
+    from engine.risk_model import MODEL
+    cells = all_cells()
+    if h3_cell not in cells:
+        return JSONResponse(
+            status_code=404,
+            content={"error": f"Cell {h3_cell} not tracked yet"},
+        )
+    cell = cells[h3_cell]
+    now  = datetime.now(timezone.utc)
+    baseline = ENGINE._get_baseline_dict(h3_cell)
+    drivers  = MODEL.driver_contributions(cell.decayed_stress, baseline)
+
+    domain_detail = {}
+    for domain, stress in cell.decayed_stress.items():
+        ts    = cell.last_updated.get(domain)
+        age_h = (now - ts).total_seconds() / 3600 if ts else None
+        domain_detail[domain] = {
+            "stress":       stress,
+            "last_updated": ts.isoformat() if ts else None,
+            "age_hours":    round(age_h, 2) if age_h is not None else None,
+            "is_stale":     age_h is not None and age_h >= 12.0,
+        }
+
+    return {
+        "cell":           h3_cell,
+        "risk":           cell.risk,
+        "risk_label":     cell.risk_label,
+        "interval":       list(cell.risk_interval),
+        "confidence":     cell.confidence,
+        "is_unknown":     cell.is_unknown,
+        "unknown_reason": cell.unknown_reason,
+        "drivers":        drivers,
+        "domains":        domain_detail,
+        "fresh_domains":  cell.fresh_domains(),
+        "stale_domains":  cell.stale_domains(),
+        "source_count":   len(cell.source_types),
+        "baseline":       baseline,
+        "last_seen":      max(cell.last_updated.values()).isoformat()
+                          if cell.last_updated else None,
+    }
+
+
+# ── Evaluation ────────────────────────────────────────────────────────────────
+@app.get("/eval/results")
+async def get_eval_results(scenario: str = "contracts/scenario_format.yaml"):
+    """
+    Run IoU evaluation harness against scenario ground truth and return metrics.
+    """
+    from eval.iou_harness import evaluate_scenario
+    metrics = evaluate_scenario(scenario)
+    return metrics.to_dict()
 
 
 # ── SSE stream ────────────────────────────────────────────────────────────────

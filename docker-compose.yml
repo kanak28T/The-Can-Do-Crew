@@ -1,0 +1,58 @@
+# Docker Compose Version (3.8 = compatible with most Docker versions)
+version: '3.8'
+
+# Services are containers that run
+services:
+  
+  # Service 1: FastAPI API server
+  api:
+    # Build from current directory's Dockerfile
+    build: .
+    
+    # Container name (for reference in logs)
+    container_name: urbanpulse_api
+    
+    # Port mapping: your_computer_port:container_port
+    # "8000:8000" = access FastAPI at http://localhost:8000
+    ports:
+      - "8000:8000"
+    
+    # Volume mapping: your_computer_folder:container_folder
+    # This means changes on your computer instantly reflect in container
+    volumes:
+      # .:/app = entire project directory → /app in container
+      - .:/app
+      # ./db:/app/db = persistent database storage
+      - ./db:/app/db
+      # ./data:/app/data = persistent data storage (roads, population, etc.)
+      - ./data:/app/data
+    
+    # Environment variables inside container
+    environment:
+      # SQLite database path inside container
+      - DATABASE_URL=sqlite:////app/db/events.db
+      # Don't buffer Python output (see logs in real-time)
+      - PYTHONUNBUFFERED=1
+    
+    # Command to run when container starts
+    # uvicorn api.main:app = start FastAPI from api/main.py:app
+    # --host 0.0.0.0 = listen on all network interfaces
+    # --port 8000 = on port 8000
+    # --reload = restart when code changes (development mode)
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+    
+    # Wait for database service before starting API
+    depends_on:
+      - db
+    
+    # Restart policy: restart if container crashes
+    restart: unless-stopped
+  
+  # Service 2: SQLite database persistence
+  db:
+    image: sqlite:latest
+    container_name: urbanpulse_db
+    volumes:
+      # ./db → /data in container (persistent storage)
+      - ./db:/data
+    restart: unless-stopped

@@ -1,0 +1,17 @@
+scenario_id: SCN-I-001
+family: I
+name: Stress then recovery risk returns to Low
+description: See scenario_format.yaml for field definitions.
+seed: 99
+time_compression_factor: 60
+ground_truth:
+  polygon_h3_cells:
+    - 89609610d4fffff
+    - 89609610d4bffff
+    - 896096108b3ffff
+  severity: Low
+  notes: Authored by B2 Sanvi. Real NMC H3 res-9 cells from nagpur_h3_res9.geojson.
+events: []
+decoys: []
+feed_loss: []
+contradictions: []
