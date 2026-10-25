@@ -10,6 +10,11 @@ import sqlite3
 import os
 from datetime import datetime
 from typing import AsyncGenerator
+from dotenv import load_dotenv
+
+load_dotenv()   # reads .env file → os.environ
+
+OPENCELLID_KEY = os.getenv("OPENCELLID_API_KEY", "")  # used in Phase 1 tower mapping
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
