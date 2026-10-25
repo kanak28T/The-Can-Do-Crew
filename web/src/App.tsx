@@ -4,6 +4,7 @@ import Header from './components/Header';
 import LeftRail from './components/LeftRail';
 import MapView from './components/MapView';
 import RightPanel from './components/RightPanel';
+import BottomDock from './components/BottomDock';
 
 export default function App() {
   const theme = useAppStore((s) => s.theme);
@@ -28,6 +29,7 @@ export default function App() {
       <LeftRail />
       <div style={{ gridRow: '2', gridColumn: '2', position: 'relative', backgroundColor: 'var(--color-surface)', borderRadius: '8px', border: '1px solid var(--color-border)', overflow: 'hidden' }}>
         <MapView />
+        <BottomDock />
       </div>
       <RightPanel />
     </div>
