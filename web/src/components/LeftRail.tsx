@@ -11,7 +11,7 @@ export default function LeftRail() {
   ];
 
   return (
-    <div style={{ width: 280, display: 'flex', flexDirection: 'column', gap: 12, padding: 12, overflowY: 'auto' }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 12, padding: 12, overflowY: 'auto', overflowX: 'hidden' }}>
       {/* Stress Console */}
       <div className='panel-surface' style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div className='panel-title'>Stress console</div>

@@ -11,6 +11,59 @@ import { useAppStore } from '../store/useAppStore';
 const NAGPUR_CENTER: [number, number] = [79.0882, 21.1458];
 const ZOOM_SWITCH_THRESHOLD = 12.0;
 
+// High-reliability Carto basemap styles with zero API key dependencies
+const CARTO_DARK_STYLE: any = {
+  version: 8,
+  sources: {
+    'carto-dark': {
+      type: 'raster',
+      tiles: [
+        'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+        'https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+      ],
+      tileSize: 256,
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    },
+  },
+  layers: [
+    {
+      id: 'carto-dark-tiles',
+      type: 'raster',
+      source: 'carto-dark',
+      minzoom: 0,
+      maxzoom: 19,
+    },
+  ],
+};
+
+const CARTO_LIGHT_STYLE: any = {
+  version: 8,
+  sources: {
+    'carto-light': {
+      type: 'raster',
+      tiles: [
+        'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+        'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+        'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+        'https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+      ],
+      tileSize: 256,
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+    },
+  },
+  layers: [
+    {
+      id: 'carto-light-tiles',
+      type: 'raster',
+      source: 'carto-light',
+      minzoom: 0,
+      maxzoom: 19,
+    },
+  ],
+};
+
 export default function MapView() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -30,13 +83,11 @@ export default function MapView() {
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const styleUrl = theme === 'dark'
-      ? 'https://tiles.openfreemap.org/styles/dark'
-      : 'https://tiles.openfreemap.org/styles/positron';
+    const baseStyle = theme === 'dark' ? CARTO_DARK_STYLE : CARTO_LIGHT_STYLE;
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: styleUrl,
+      style: baseStyle,
       center: NAGPUR_CENTER,
       zoom: 11.2,
       maxBounds: [[78.5, 20.5], [79.5, 21.5]],
@@ -57,6 +108,7 @@ export default function MapView() {
 
     map.on('load', () => {
       updateZoomState();
+      map.resize();
 
       // ── Layer 1: H3 Res 8 Grid (Zoomed Out / Macro, maxzoom: 12) ──
       map.addSource('h3-res8', {
@@ -354,12 +406,29 @@ export default function MapView() {
     map.on('mousemove', 'hospital-points-circle', () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', 'hospital-points-circle', () => { map.getCanvas().style.cursor = ''; });
 
+    // Handle container resize dynamically so map never collapses
+    const resizeObserver = new ResizeObserver(() => {
+      if (mapRef.current) {
+        mapRef.current.resize();
+      }
+    });
+
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
+    const t1 = setTimeout(() => { if (mapRef.current) mapRef.current.resize(); }, 150);
+    const t2 = setTimeout(() => { if (mapRef.current) mapRef.current.resize(); }, 500);
+
     return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      resizeObserver.disconnect();
       if (popupRef.current) popupRef.current.remove();
       map.remove();
       mapRef.current = null;
     };
-  }, []);
+  }, [theme]);
 
   // Update layer visibility when activeLayer changes
   useEffect(() => {
@@ -381,7 +450,7 @@ export default function MapView() {
     }
   }, [activeLayer]);
 
-  // ── Accessibility: Keyboard Navigation Handler (Step 3) ──
+  // ── Accessibility: Keyboard Navigation Handler ──
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
     const map = mapRef.current;
     if (!map) return;
@@ -444,13 +513,27 @@ export default function MapView() {
       role="region"
       aria-label="Interactive Nagpur Geospatial Risk Map. Use arrow keys to pan, plus or minus to zoom."
       onKeyDown={handleKeyDown}
-      className="relative w-full h-full focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg overflow-hidden"
-      style={{ backgroundColor: '#0f172a' }}
+      className="relative focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg overflow-hidden"
+      style={{
+        width: '100%',
+        height: '100%',
+        minHeight: '400px',
+        backgroundColor: '#0f172a',
+        position: 'relative'
+      }}
     >
-      {/* MapLibre DOM Node */}
-      <div ref={containerRef} className="w-full h-full" />
+      {/* Strict 100% full-height MapLibre container with minHeight 400px */}
+      <div
+        ref={containerRef}
+        style={{
+          width: '100%',
+          height: '100%',
+          minHeight: '400px',
+          backgroundColor: '#0f172a'
+        }}
+      />
 
-      {/* Top Left: Dynamic Zoom & Resolution Switch Pill (Step 1) */}
+      {/* Top Left: Dynamic Zoom & Resolution Switch Pill */}
       <div className="panel-surface absolute top-3 left-3 px-3 py-1.5 flex items-center gap-2 z-10 text-xs backdrop-blur-md">
         <span className="w-2 h-2 rounded-full bg-emerald-500" />
         <span className="font-mono font-medium text-[var(--color-text)]">

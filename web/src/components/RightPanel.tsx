@@ -97,7 +97,7 @@ export default function RightPanel() {
   const riskColor = risk >= 0.7 ? 'var(--color-high)' : risk >= 0.4 ? 'var(--color-watch)' : 'var(--color-low)';
 
   return (
-    <div style={{ width: 360, padding: 16, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ width: '100%', height: '100%', padding: 16, overflowY: 'auto', overflowX: 'hidden', display: 'flex', flexDirection: 'column', gap: 12 }}>
       {/* Zone Header & Live Risk */}
       <div className='panel-surface' style={{ padding: 16 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>

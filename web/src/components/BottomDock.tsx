@@ -13,11 +13,12 @@ export default function BottomDock() {
 
   return (
     <div
-      className="absolute bottom-0 left-0 right-0 z-20 flex flex-col transition-all duration-300 backdrop-blur-md shadow-2xl border-t"
+      className="absolute bottom-0 left-0 right-0 z-20 flex flex-col transition-all duration-300 backdrop-blur-md shadow-2xl border-t overflow-hidden"
       style={{
         backgroundColor: 'var(--color-surface)',
         borderColor: 'var(--color-border)',
-        height: dockCollapsed ? '42px' : '320px'
+        height: dockCollapsed ? '42px' : '320px',
+        maxHeight: 'calc(100% - 60px)',
       }}
     >
       {/* Dock Header & Tab Navigation */}
@@ -87,9 +88,9 @@ export default function BottomDock() {
         </button>
       </div>
 
-      {/* Dock Content Body */}
+      {/* Dock Content Body with overflow-y: auto and min-h-0 */}
       {!dockCollapsed && (
-        <div className="flex-1 overflow-auto p-3 text-[var(--color-text)]">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 text-[var(--color-text)] min-h-0">
           {dockTab === 'dispatch' && <DispatchLog />}
           {dockTab === 'causal' && (
             <div className="h-full w-full min-h-[220px]">

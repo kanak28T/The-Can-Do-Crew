@@ -48,7 +48,7 @@ export default function EvalChart() {
   return (
     <div className="h-full flex flex-col gap-3 p-1">
       {/* KPI Header Bar */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-4 gap-3 flex-shrink-0">
         <div className="bg-[var(--color-raised)] p-2.5 rounded border border-[var(--color-border)] flex flex-col justify-between">
           <span className="text-[11px] text-[var(--color-muted)] font-medium">Mean Evaluation IoU</span>
           <div className="flex items-baseline gap-2 mt-1">
@@ -99,8 +99,8 @@ export default function EvalChart() {
       </div>
 
       {/* Bar Chart Area */}
-      <div className="flex-1 min-h-[170px] bg-[var(--color-raised)] p-2.5 rounded border border-[var(--color-border)] flex flex-col">
-        <div className="flex items-center justify-between mb-1">
+      <div className="flex-1 min-h-[220px] bg-[var(--color-raised)] p-2.5 rounded border border-[var(--color-border)] flex flex-col">
+        <div className="flex items-center justify-between mb-1 flex-shrink-0">
           <span className="text-xs font-semibold text-[var(--color-text)]">
             Intersection-over-Union (IoU) by Stress Scenario
           </span>
@@ -109,9 +109,12 @@ export default function EvalChart() {
           </span>
         </div>
 
-        <div className="flex-1 w-full h-[150px]">
+        <div className="flex-1 w-full h-[200px] min-h-[180px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={evalData} margin={{ top: 10, right: 30, left: -10, bottom: 20 }}>
+            <BarChart
+              data={evalData}
+              margin={{ top: 15, right: 25, left: -10, bottom: 60 }}
+            >
               <CartesianGrid
                 strokeDasharray="3 3"
                 stroke={theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}
@@ -121,8 +124,9 @@ export default function EvalChart() {
                 stroke="var(--color-muted)"
                 fontSize={10}
                 interval={0}
-                angle={-15}
+                angle={-45}
                 textAnchor="end"
+                height={65}
                 tickLine={false}
               />
               <YAxis
@@ -141,7 +145,13 @@ export default function EvalChart() {
                   color: 'var(--color-text)'
                 }}
               />
-              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 4 }} />
+
+              {/* Legend moved to top-right to prevent obscuring the bars */}
+              <Legend
+                verticalAlign="top"
+                align="right"
+                wrapperStyle={{ fontSize: 11, paddingBottom: 8, top: -4 }}
+              />
 
               <ReferenceLine
                 y={0.70}
