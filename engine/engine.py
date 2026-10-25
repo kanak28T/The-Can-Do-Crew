@@ -8,12 +8,12 @@ Priyanshu's api/main.py calls process_event() on every /ingest hit.
 
 Flow:
     CanonicalEvent
-        → cell_state.update()          # store + decay domain stress
+        → cell_state.update()             # store + decay domain stress
         → cell_state.update_confidence()  # coverage × freshness × agreement
-        → risk_model.score()           # logistic p + label
-        → risk_model.bootstrap_interval()  # 90% CI (fast, 200 draws)
+        → risk_model.score()              # logistic p + label
+        → risk_model.bootstrap_interval() # 90% CI (fast, 200 draws)
         → cell_state cached (risk, label, interval)
-        → returns CellUpdateResult     # sent to SSE stream
+        → returns CellUpdateResult        # sent to SSE stream
 """
 
 from __future__ import annotations
@@ -60,7 +60,7 @@ class UrbanPulseEngine:
         Called once at API startup (api/main.py @startup event).
         Safe to call again to refresh after new data files arrive.
         """
-        self.baseline = load_baseline_features()
+        self.baseline = load_baseline_features(grid_path)
         self._loaded  = True
         print(f"[engine] Baseline loaded: {len(self.baseline)} cells.")
 
@@ -80,15 +80,18 @@ class UrbanPulseEngine:
         5. Return CellUpdateResult for SSE broadcast
         """
         # Production path: never let scenario_tag influence scoring
-        event = event.for_production()
+        if hasattr(event, 'for_production'):
+            event = event.for_production()
 
         cell: CellState = get_cell(event.h3_cell)
 
         # 1. Update domain stress
+        domain_val = event.domain if isinstance(event.domain, str) else event.domain.value
+        src_val    = event.source_type if isinstance(event.source_type, str) else event.source_type.value
         cell.update(
-            domain=event.domain,
+            domain=domain_val,
             stress=event.severity,
-            source_type=event.source_type,
+            source_type=src_val,
         )
 
         # 2. Recompute confidence
@@ -100,13 +103,11 @@ class UrbanPulseEngine:
 
         if cell.is_unknown:
             # Not enough data — show grey, don't score
-            p, label   = 0.0, "unknown"
-            interval   = (0.0, 1.0)
+            p, label = 0.0, "unknown"
+            interval = (0.0, 1.0)
         else:
-            p, label   = self.model.score(stress, baseline_dict)
-            interval   = self.model.bootstrap_interval(
-                stress, baseline_dict, n=200
-            )
+            p, label = self.model.score(stress, baseline_dict)
+            interval = self.model.bootstrap_interval(stress, baseline_dict, n=200)
 
         # 4. Cache on cell state
         cell.risk          = p
@@ -120,7 +121,7 @@ class UrbanPulseEngine:
             interval=interval,
             confidence=cell.confidence,
             is_unknown=cell.is_unknown,
-            domain=event.domain,
+            domain=domain_val,
             severity=event.severity,
             timestamp=datetime.now(timezone.utc).isoformat(),
         )
