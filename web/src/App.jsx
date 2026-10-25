@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import * as h3 from 'h3-js';
 import Map from './components/Map';
+import SectorPanel from './components/SectorPanel';
+import DispatchLog from './components/DispatchLog';
+import StressConsole from './components/StressConsole';
+import PrivacyPanel from './components/PrivacyPanel';
 import initialMockData from './data/mock_cells.json';
 import './App.css';
 
@@ -13,6 +17,11 @@ export default function App() {
   const [geojsonData, setGeojsonData] = useState(initialMockData);
   const [sseStatus, setSseStatus] = useState('connecting'); // connected | connecting | offline
   const [lastEvent, setLastEvent] = useState(null);
+  const [selectedSector, setSelectedSector] = useState(null);
+  const [isSectorPanelOpen, setIsSectorPanelOpen] = useState(false);
+  const [isDispatchOpen, setIsDispatchOpen] = useState(false);
+  const [isStressOpen, setIsStressOpen] = useState(false);
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
 
   // Apply a cell update to GeoJSON state
   const handleCellUpdate = useCallback((payload) => {
@@ -217,6 +226,33 @@ export default function App() {
 
           <button
             type="button"
+            className="nav-action-btn"
+            onClick={() => setIsDispatchOpen(true)}
+            title="Open Automated Intervention Log"
+          >
+            📋 Dispatch Log
+          </button>
+
+          <button
+            type="button"
+            className="nav-action-btn"
+            onClick={() => setIsStressOpen(true)}
+            title="Open Resilience Stress Console"
+          >
+            ⚡ Stress Console
+          </button>
+
+          <button
+            type="button"
+            className="nav-action-btn"
+            onClick={() => setIsPrivacyOpen(true)}
+            title="Open Privacy & Anonymity Panel"
+          >
+            🛡️ Privacy
+          </button>
+
+          <button
+            type="button"
             className="dev-simulate-btn"
             onClick={simulateLiveEvent}
             title="Simulate incoming SSE cell update event"
@@ -228,7 +264,33 @@ export default function App() {
 
       {/* Main Map Area */}
       <main className="app-main">
-        <Map geojsonData={geojsonData} />
+        <Map
+          geojsonData={geojsonData}
+          onCellSelect={(cell) => {
+            setSelectedSector(cell);
+            setIsSectorPanelOpen(true);
+          }}
+        />
+        <SectorPanel
+          isOpen={isSectorPanelOpen}
+          onClose={() => setIsSectorPanelOpen(false)}
+          cellData={selectedSector}
+        />
+        <DispatchLog
+          isOpen={isDispatchOpen}
+          onClose={() => setIsDispatchOpen(false)}
+        />
+        <StressConsole
+          isOpen={isStressOpen}
+          onClose={() => setIsStressOpen(false)}
+          onStressApplied={({ feedCut, lossPattern }) => {
+            console.log(`Stress applied: ${feedCut}% under ${lossPattern}`);
+          }}
+        />
+        <PrivacyPanel
+          isOpen={isPrivacyOpen}
+          onClose={() => setIsPrivacyOpen(false)}
+        />
       </main>
 
       {/* Mandatory Footer (D4 & Locked Decisions) */}
