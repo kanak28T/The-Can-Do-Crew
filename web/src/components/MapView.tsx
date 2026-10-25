@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import nagpurH3Grid from '../data/nagpur_h3_res9.json';
+import nagpurWards from '../data/nagpur_wards.json';
 import { useAppStore } from '../store/useAppStore';
 
 const NAGPUR_CENTER: [number, number] = [79.0882, 21.1458];
@@ -78,6 +79,41 @@ export default function MapView() {
           'line-width': ['case', ['==', ['get', 'status'], 'high'], 1.5, 0.5],
         },
       });
+
+      // Layer 3: Ward Boundaries Overlay (D2: Prabhags 1-30)
+      map.addSource('nagpur-wards', {
+        type: 'geojson',
+        data: nagpurWards as any
+      });
+
+      map.addLayer({
+        id: 'nagpur-wards-line',
+        type: 'line',
+        source: 'nagpur-wards',
+        paint: {
+          'line-color': '#38bdf8',
+          'line-width': 2.0,
+          'line-dasharray': [3, 2],
+          'line-opacity': 0.85
+        }
+      });
+
+      map.addLayer({
+        id: 'nagpur-wards-label',
+        type: 'symbol',
+        source: 'nagpur-wards',
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-size': 11,
+          'text-anchor': 'center',
+          'text-allow-overlap': false
+        },
+        paint: {
+          'text-color': '#ffffff',
+          'text-halo-color': 'rgba(15, 23, 42, 0.9)',
+          'text-halo-width': 2.0
+        }
+      });
     });
     map.on('click', 'h3-cells-fill', (e: any) => {
       if (e.features && e.features.length > 0) {
@@ -109,6 +145,10 @@ export default function MapView() {
             <span className='text-secondary' style={{ fontSize: 12.5 }}>{item.label}</span>
           </div>
         ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--color-border)' }}>
+          <span style={{ display: 'inline-block', width: 16, height: 0, borderTop: '2px dashed #38bdf8' }} />
+          <span style={{ fontSize: 12, color: '#38bdf8', fontWeight: 500 }}>Ward Overlay</span>
+        </div>
       </div>
     </div>
   );
