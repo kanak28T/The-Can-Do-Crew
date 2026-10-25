@@ -220,8 +220,21 @@ export default function Map({ geojsonData, onCellSelect }) {
               <span className={`map-hud-badge ${getStatusBadgeClass(selectedCell.status)}`}>
                 {selectedCell.status || 'UNKNOWN'}
               </span>
+              {selectedCell.confidence !== undefined && selectedCell.confidence !== null && (
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '4px', textAlign: 'right' }}>
+                  Conf: <strong style={{ color: selectedCell.confidence >= 0.7 ? '#10b981' : selectedCell.confidence >= 0.4 ? '#f59e0b' : '#ef4444' }}>
+                    {Math.round(selectedCell.confidence * 100)}%
+                  </strong>
+                </div>
+              )}
             </div>
           </div>
+
+          {selectedCell.is_unknown && selectedCell.unknown_reason && (
+            <div style={{ margin: '6px 0', padding: '6px 8px', background: 'rgba(107, 114, 128, 0.2)', borderRadius: '6px', fontSize: '0.75rem', color: '#cbd5e1' }}>
+              ⚠️ Reason: <strong style={{ color: '#fbbf24' }}>{selectedCell.unknown_reason.toUpperCase()}</strong>
+            </div>
+          )}
 
           <div className="map-hud-drivers-title">Causal Drivers (Top Contributors)</div>
           <ul className="map-hud-drivers-list">
