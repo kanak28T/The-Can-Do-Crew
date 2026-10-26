@@ -1,4 +1,5 @@
 services:
+  # Backend API
   - type: web
     name: urbanpulse-api
     env: python
@@ -16,3 +17,19 @@ services:
         value: "5"
       - key: PRIVACY_POP_FLOOR
         value: "500"
+
+  # Frontend Static Site
+  - type: web
+    name: urbanpulse-frontend
+    env: static
+    region: singapore
+    plan: free
+    buildCommand: "cd web && npm install && npm run build"
+    staticPublishPath: ./web/dist
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://urbanpulse-api.onrender.com/api/*
+      - type: rewrite
+        source: /sse/*
+        destination: https://urbanpulse-api.onrender.com/sse/*

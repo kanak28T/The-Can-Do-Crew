@@ -1,14 +1,13 @@
 import type { CellData, ZoneData, DispatchItem, Scenario, PrivacyRedTeam, EvalSummary } from '../types';
 
 /**
- * In dev (Vite proxy): VITE_API_URL is set to http://localhost:8000 but calls
- * use relative paths (/api/*) which Vite proxies to http://localhost:8000/api/*
+ * In dev (Vite proxy): calls use relative paths (/api/*) which Vite proxies to backend
  *
- * In production: set VITE_API_URL=https://your-backend.com — same /api/* paths apply.
+ * In production: VITE_API_BASE_URL=https://your-backend.com — same /api/* paths apply.
  *
  * Backend serves all frontend endpoints at /api/* directly.
  */
-const _BASE = (import.meta as any).env.VITE_API_URL as string | undefined;
+const _BASE = (import.meta as any).env.VITE_API_BASE_URL as string | undefined;
 
 // In dev, use relative paths so Vite proxy handles CORS.
 // In prod (when served from a different origin), use the full URL.
@@ -64,5 +63,7 @@ export const api = {
   healthFeeds: () => fetchJSON<any>('/health/feeds'),
 };
 
-// SSE URL — relative path in dev, Vite proxy forwards to backend
-export const SSE_URL = '/sse/events';
+// SSE URL — relative path in dev (Vite proxy), absolute in production
+export const SSE_URL = _BASE && !_BASE.includes('localhost') 
+  ? `${_BASE}/sse/events` 
+  : '/sse/events';
