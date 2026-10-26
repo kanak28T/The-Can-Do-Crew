@@ -122,10 +122,10 @@ function ZoneDetailModal({ zone, onClose }: { zone: ZoneData; onClose: () => voi
         </div>
 
         {/* Drivers */}
-        {drivers.length > 0 && (
+        {drivers.length > 0 ? (
           <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--color-border)' }}>
             <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-muted)', marginBottom: '10px', letterSpacing: '0.04em' }}>
-              ⚠️ Vulnerability Drivers
+              ⚠️ Vulnerability Drivers — Why is this zone at risk?
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {drivers.map((d, i) => (
@@ -138,50 +138,60 @@ function ZoneDetailModal({ zone, onClose }: { zone: ZoneData; onClose: () => voi
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '4px',
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        backgroundColor: driverKeyColor(d.key) + '18',
-                        color: driverKeyColor(d.key),
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        width: '20px', height: '20px', borderRadius: '4px', fontSize: '10px', fontWeight: 700,
+                        backgroundColor: driverKeyColor(d.key) + '18', color: driverKeyColor(d.key),
                       }}>
                         {driverKeyIcon(d.key)}
                       </span>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text)' }}>
-                        {d.label}
-                      </span>
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text)' }}>{d.label}</span>
                     </div>
                     <span style={{
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      color: '#ef4444',
-                      backgroundColor: '#ef444415',
-                      padding: '2px 6px',
-                      borderRadius: '3px',
+                      fontSize: '11px', fontWeight: 700, color: '#ef4444',
+                      backgroundColor: '#ef444415', padding: '2px 6px', borderRadius: '3px',
                     }}>
-                      +{Math.round(d.delta * 100)}%
+                      +{Math.round(d.delta * 100)}% risk contribution
                     </span>
                   </div>
-                  <div style={{ height: '4px', backgroundColor: 'rgba(0,0,0,0.06)', borderRadius: '2px', overflow: 'hidden' }}>
+                  {/* Progress bar */}
+                  <div style={{ height: '4px', backgroundColor: 'rgba(0,0,0,0.06)', borderRadius: '2px', overflow: 'hidden', marginBottom: 4 }}>
                     <div style={{
-                      height: '100%',
-                      width: `${Math.min(d.delta * 100 * 3, 100)}%`,
-                      backgroundColor: driverKeyColor(d.key),
-                      borderRadius: '2px',
+                      height: '100%', width: `${Math.min(d.delta * 100 * 3, 100)}%`,
+                      backgroundColor: driverKeyColor(d.key), borderRadius: '2px',
                       transition: 'width 0.3s ease',
                     }} />
                   </div>
                   {d.evidence && (
-                    <div style={{ fontSize: '10px', color: 'var(--color-muted)', marginTop: '4px', fontStyle: 'italic' }}>
-                      {d.evidence}
+                    <div style={{ fontSize: '10px', color: 'var(--color-muted)', fontStyle: 'italic' }}>
+                      📌 {d.evidence}
                     </div>
                   )}
                 </div>
               ))}
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--color-border)' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-muted)', marginBottom: '10px', letterSpacing: '0.04em' }}>
+              ⚠️ Explainability
+            </div>
+            <div style={{
+              backgroundColor: 'rgba(245,158,11,0.06)',
+              border: '1px solid rgba(245,158,11,0.2)',
+              borderRadius: '6px', padding: '12px 14px',
+            }}>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text)', marginBottom: 6 }}>
+                Risk score: {Math.round(zone.risk * 100)}% — {zone.risk >= 0.7 ? 'HIGH' : zone.risk >= 0.4 ? 'WATCH' : 'LOW'} vulnerability
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--color-secondary)', lineHeight: 1.6 }}>
+                This zone is scored by a multi-domain logistic model combining infrastructure stress
+                across power, water, transit, health, comms, and road domains.
+                Confidence: <strong style={{ color: 'var(--color-text)' }}>{Math.round(zone.confidence * 100)}%</strong> — based on
+                source coverage × data freshness × agreement.
+              </div>
+              <div style={{ fontSize: '10px', color: 'var(--color-muted)', marginTop: 8, fontStyle: 'italic' }}>
+                Click Start in the Stress Console to generate live events — drivers will populate as events arrive.
+              </div>
             </div>
           </div>
         )}

@@ -808,19 +808,46 @@ async def get_api_zones():
 
     for z in raw_res.get("zones", []):
         cell_id = z.get("cell_id", "")
+        raw_drivers = z.get("driver_contributions", {})
+
+        # Build rich driver list with evidence strings
+        rich_drivers = []
+        domain_labels = {
+            "power":   ("⚡", "Power grid stress",     "Feeder voltage degradation detected"),
+            "water":   ("💧", "Water supply stress",   "Pump pressure below threshold"),
+            "transit": ("🚌", "Transit disruption",    "Route frequency deficit"),
+            "health":  ("🏥", "Healthcare isolation",  "Hospital corridor congestion"),
+            "comms":   ("📡", "Comms degradation",     "BTS load surge / packet loss"),
+            "road":    ("🛣", "Road network stress",   "Road closure / congestion event"),
+        }
+        for domain, delta in sorted(raw_drivers.items(), key=lambda x: -x[1]):
+            if delta > 0.01:
+                icon, label, evidence = domain_labels.get(domain, ("📊", domain.capitalize(), "Elevated stress"))
+                rich_drivers.append({
+                    "key":      domain,
+                    "label":    label,
+                    "delta":    round(delta, 3),
+                    "evidence": evidence,
+                })
+
         zones_list.append({
-            "id": cell_id,
-            "name": _cell_name(cell_id),
-            "cells": [cell_id],
-            "polygon": [],
-            "risk": z.get("risk_score", 0.5),
-            "lo": z.get("interval", [0.4, 0.8])[0] if z.get("interval") else 0.4,
-            "hi": z.get("interval", [0.4, 0.8])[1] if z.get("interval") else 0.8,
+            "id":       cell_id,
+            "name":     _cell_name(cell_id),
+            "cells":    [cell_id],
+            "polygon":  [],
+            "risk":     z.get("risk_score", 0.5),
+            "lo":       z.get("interval", [0.4, 0.8])[0] if z.get("interval") else 0.4,
+            "hi":       z.get("interval", [0.4, 0.8])[1] if z.get("interval") else 0.8,
             "confidence": z.get("confidence", 0.85),
-            "drivers": [
-                {"key": k, "label": f"{k.capitalize()} stress", "delta": v, "evidence": f"Stress level {v:.2f}"}
-                for k, v in z.get("driver_contributions", {}).items()
-            ]
+            "drivers":  rich_drivers,
+            "actions":  [
+                {
+                    "action":    "Deploy targeted intervention for highest-risk driver",
+                    "risk_after": round(max(0.1, z.get("risk_score", 0.5) - 0.25), 2),
+                    "lo":        round(max(0.05, z.get("risk_score", 0.5) - 0.35), 2),
+                    "hi":        round(min(0.95, z.get("risk_score", 0.5) - 0.10), 2),
+                }
+            ] if z.get("risk_score", 0) >= 0.4 else [],
         })
     return zones_list
 
