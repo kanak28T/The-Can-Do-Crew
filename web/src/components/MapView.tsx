@@ -312,10 +312,17 @@ export default function MapView() {
     };
   }, []);
 
-  // Update style when theme changes
+  // Update style when theme changes — only when map + style are fully ready
   useEffect(() => {
-    if (!mapRef.current) return;
-    mapRef.current.setStyle(getRasterMapStyle(theme));
+    const map = mapRef.current;
+    if (!map) return;
+    if (map.isStyleLoaded()) {
+      map.setStyle(getRasterMapStyle(theme));
+    } else {
+      map.once('load', () => {
+        map.setStyle(getRasterMapStyle(theme));
+      });
+    }
   }, [theme]);
 
   // ── Apply layer coloring when activeLayer changes ──

@@ -32,6 +32,80 @@ from engine.privacy import apply_k_merge
 
 OPENCELLID_KEY = os.getenv("OPENCELLID_API_KEY", "")
 
+# ── H3 cell → Nagpur ward name lookup (built at startup) ─────────────────────
+_CELL_TO_WARD: dict[str, str] = {}
+
+# Well-known Nagpur neighbourhood names for specific prabhag numbers
+_PRABHAG_NAMES: dict[str, str] = {
+    "Prabhag 1":  "Prabhag 1 (Lakadganj)",
+    "Prabhag 2":  "Prabhag 2 (Mahal)",
+    "Prabhag 3":  "Prabhag 3 (Itwari)",
+    "Prabhag 4":  "Prabhag 4 (Gandhibagh)",
+    "Prabhag 5":  "Prabhag 5 (Sadar)",
+    "Prabhag 6":  "Prabhag 6 (Civil Lines)",
+    "Prabhag 7":  "Prabhag 7 (Dhantoli East)",
+    "Prabhag 8":  "Prabhag 8 (Dharampeth)",
+    "Prabhag 9":  "Prabhag 9 (Bajaj Nagar)",
+    "Prabhag 10": "Prabhag 10 (Manewada)",
+    "Prabhag 11": "Prabhag 11 (Nandanvan)",
+    "Prabhag 12": "Prabhag 12 (Sitabuldi Central)",
+    "Prabhag 13": "Prabhag 13 (Ramdaspeth)",
+    "Prabhag 14": "Prabhag 14 (Shukrawar Peth)",
+    "Prabhag 15": "Prabhag 15 (Mominpura)",
+    "Prabhag 16": "Prabhag 16 (Naya Nagar)",
+    "Prabhag 17": "Prabhag 17 (Kalamna)",
+    "Prabhag 18": "Prabhag 18 (Gandhibagh North)",
+    "Prabhag 19": "Prabhag 19 (Wadi)",
+    "Prabhag 20": "Prabhag 20 (Hingna Road)",
+    "Prabhag 21": "Prabhag 21 (Besa)",
+    "Prabhag 22": "Prabhag 22 (Manish Nagar)",
+    "Prabhag 23": "Prabhag 23 (Pardi)",
+    "Prabhag 24": "Prabhag 24 (Sadar West)",
+    "Prabhag 25": "Prabhag 25 (Ambazari)",
+    "Prabhag 26": "Prabhag 26 (Pratap Nagar)",
+    "Prabhag 27": "Prabhag 27 (Jaripatka)",
+    "Prabhag 28": "Prabhag 28 (Kamptee Road)",
+    "Prabhag 29": "Prabhag 29 (Koradi Road)",
+    "Prabhag 30": "Prabhag 30 (Butibori)",
+}
+
+
+def _build_cell_to_ward() -> dict[str, str]:
+    """Build H3 res-9 → ward name lookup from nagpur_wards.geojson."""
+    import json as _json
+    import h3 as _h3
+    mapping: dict[str, str] = {}
+    wards_path = "data/nagpur_wards.geojson"
+    if not os.path.exists(wards_path):
+        return mapping
+    try:
+        with open(wards_path) as f:
+            wards = _json.load(f)
+        for feat in wards.get("features", []):
+            raw_name = feat.get("properties", {}).get("name", "Unknown")
+            display_name = _PRABHAG_NAMES.get(raw_name, raw_name)
+            geom = feat.get("geometry", {})
+            polys = [geom["coordinates"]] if geom.get("type") == "Polygon" else geom.get("coordinates", [])
+            for poly in polys:
+                outer = [tuple(reversed(c)) for c in poly[0]]
+                holes = [[tuple(reversed(c)) for c in ring] for ring in poly[1:]]
+                latlng_poly = _h3.LatLngPoly(outer, *holes)
+                for cell in _h3.polygon_to_cells(latlng_poly, 9):
+                    mapping[cell] = display_name
+    except Exception as e:
+        print(f"[ward_lookup] Failed to build: {e}")
+    print(f"[ward_lookup] Mapped {len(mapping)} cells to ward names.")
+    return mapping
+
+
+def _cell_name(h3_cell: str) -> str:
+    """Return a human-readable name for an H3 cell."""
+    ward = _CELL_TO_WARD.get(h3_cell)
+    if ward:
+        return ward
+    # Fallback: short hex abbreviation
+    return f"Cell {h3_cell[:8]}…"
+
 # ── Simulation state ───────────────────────────────────────────────────────────
 _sim_running: bool = False
 _sim_paused:  bool = False
@@ -208,8 +282,10 @@ async def _broadcast(payload: dict) -> None:
 # ── Startup ───────────────────────────────────────────────────────────────────
 @app.on_event("startup")
 async def startup():
+    global _CELL_TO_WARD
     _init_db()
-    ENGINE.load_baseline()   # loads population, hospital travel times, econ proxy
+    ENGINE.load_baseline()
+    _CELL_TO_WARD = _build_cell_to_ward()
 
 
 # ── Health ────────────────────────────────────────────────────────────────────
@@ -691,47 +767,50 @@ async def get_api_zones():
     raw_res = await get_zones(risk_min=0.40, include_unknown=True)
     zones_list = []
     
-    # Built-in zones fallback if database is fresh
-    if not raw_res.get("zones"):
+    if not zones_list and not raw_res.get("zones"):
+        # Fallback demo zones with real Nagpur names
         return [
             {
                 "id": "Z01",
                 "name": "Prabhag 12 (Sitabuldi Central)",
                 "cells": ["89609610037ffff", "896096101c7ffff"],
                 "polygon": [],
-                "risk": 0.88,
-                "lo": 0.65,
-                "hi": 0.92,
-                "confidence": 0.85,
+                "risk": 0.88, "lo": 0.65, "hi": 0.92, "confidence": 0.85,
                 "drivers": [
-                    {"key": "power", "label": "Feeder F-12 low voltage", "delta": 0.22, "evidence": "Voltage drop -35%"},
-                    {"key": "road", "label": "Road R-14 closed", "delta": 0.18, "evidence": "Bus route 4 suspended"},
-                    {"key": "health", "label": "Distance to clinic > 2.2km", "delta": 0.10, "evidence": "Nearest clinic closed"}
+                    {"key": "power",  "label": "Feeder F-12 low voltage",    "delta": 0.22, "evidence": "Voltage drop -35%"},
+                    {"key": "road",   "label": "Road R-14 closed",            "delta": 0.18, "evidence": "Bus route 4 suspended"},
+                    {"key": "health", "label": "Distance to clinic > 2.2km", "delta": 0.10, "evidence": "Nearest clinic closed"},
                 ],
-                "actions": [
-                    {"action": "Deploy mobile generator to Substation C", "risk_after": 0.44, "lo": 0.35, "hi": 0.50}
-                ]
+                "actions": [{"action": "Deploy mobile generator to Substation C", "risk_after": 0.44, "lo": 0.35, "hi": 0.50}]
             },
             {
                 "id": "Z02",
                 "name": "Prabhag 7 (Dhantoli East)",
                 "cells": ["89609610157ffff"],
                 "polygon": [],
-                "risk": 0.76,
-                "lo": 0.58,
-                "hi": 0.84,
-                "confidence": 0.80,
+                "risk": 0.76, "lo": 0.58, "hi": 0.84, "confidence": 0.80,
                 "drivers": [
-                    {"key": "health", "label": "Hospital isolation risk", "delta": 0.25, "evidence": "Corridor congestion"}
-                ]
-            }
+                    {"key": "health", "label": "Hospital isolation risk", "delta": 0.25, "evidence": "Corridor congestion"},
+                    {"key": "transit","label": "Bus route disruption",   "delta": 0.15, "evidence": "Route 7 delayed 45min"},
+                ],
+            },
+            {
+                "id": "Z03",
+                "name": "Prabhag 4 (Gandhibagh)",
+                "cells": ["896096100c7ffff"],
+                "polygon": [],
+                "risk": 0.71, "lo": 0.55, "hi": 0.80, "confidence": 0.78,
+                "drivers": [
+                    {"key": "water", "label": "Pump pressure failure", "delta": 0.30, "evidence": "OCW Wardha main pressure 40%"},
+                ],
+            },
         ]
 
     for z in raw_res.get("zones", []):
         cell_id = z.get("cell_id", "")
         zones_list.append({
             "id": cell_id,
-            "name": f"Zone {cell_id[:8]}",
+            "name": _cell_name(cell_id),
             "cells": [cell_id],
             "polygon": [],
             "risk": z.get("risk_score", 0.5),
@@ -758,18 +837,20 @@ async def get_api_zone_detail(zone_id: str):
 
 @app.get("/api/cells")
 async def get_api_cells(bbox: str = None):
-    """Return all tracked cells as CellData array."""
+    """Return all tracked cells as CellData array with ward names."""
     res = []
     for cell in all_cells().values():
         res.append({
-            "h3": cell.h3_cell,
-            "risk": cell.risk,
-            "lo": cell.risk_interval[0] if cell.risk_interval else 0.0,
-            "hi": cell.risk_interval[1] if cell.risk_interval else 1.0,
-            "level": "unknown" if cell.is_unknown else cell.risk_label,
+            "h3":        cell.h3_cell,
+            "name":      _cell_name(cell.h3_cell),
+            "risk":      cell.risk,
+            "lo":        cell.risk_interval[0] if cell.risk_interval else 0.0,
+            "hi":        cell.risk_interval[1] if cell.risk_interval else 1.0,
+            "level":     "unknown" if cell.is_unknown else cell.risk_label,
             "confidence": cell.confidence,
-            "imputed": cell.is_unknown,
-            "updated_at": max(cell.last_updated.values()).isoformat() if cell.last_updated else datetime.now(timezone.utc).isoformat()
+            "imputed":   cell.is_unknown,
+            "updated_at": max(cell.last_updated.values()).isoformat()
+                          if cell.last_updated else datetime.now(timezone.utc).isoformat(),
         })
     return res
 
