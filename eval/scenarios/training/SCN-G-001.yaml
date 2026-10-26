@@ -1,0 +1,20 @@
+scenario_id: SCN-G-001
+family: G
+name: Hospital surge with communication blackout
+description: See scenario_format.yaml for field definitions.
+seed: 314
+time_compression_factor: 60
+ground_truth:
+  polygon_h3_cells:
+    - 89609612863ffff
+    - 8960961287bffff
+    - 8960961286bffff
+    - 89609612d6fffff
+    - 89609612d47ffff
+    - 89609612d8bffff
+  severity: High
+  notes: Authored by B2 Sanvi. Real NMC H3 res-9 cells from nagpur_h3_res9.geojson.
+events: []
+decoys: []
+feed_loss: []
+contradictions: []

@@ -42,3 +42,7 @@ Thumbs.db
 # IDE
 .vscode/
 *.swp
+
+# Cache & Scratch
+cache/
+tmp_*

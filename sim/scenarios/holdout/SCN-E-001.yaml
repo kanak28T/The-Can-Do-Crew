@@ -1,0 +1,47 @@
+scenario_id: "SCN-E-001"
+family: "E"
+name: "Pump failure and road block near hospital"
+description: pump_P02 fails at T+0. Road block near gmch at T+20m. Water contamination at T+45m. Compound water and access failure.
+seed: 34
+time_compression_factor: 60
+ground_truth:
+  polygon_h3_cells:
+    - "89609688b63ffff"
+    - "89609688b7bffff"
+    - "89609612d6fffff"
+    - "896096104a3ffff"
+  severity: "High"
+  notes: "Holdout scenario. Pump P02 and gmch access block."
+events:
+  - offset: "T+0s"
+    domain: "water"
+    event_type: "pump_failure"
+    entity_id: "pump_P02"
+    h3_cell: "89609688b63ffff"
+    severity: 1.0
+    source_type: "official"
+    raw_text: null
+  - offset: "T+20m"
+    domain: "road"
+    event_type: "road_closed"
+    entity_id: "road_gmch_access"
+    h3_cell: "89609612d6fffff"
+    severity: 0.8
+    source_type: "crowdsourced"
+    raw_text: "Road to gmch blocked large vehicle stuck"
+  - offset: "T+45m"
+    domain: "water"
+    event_type: "contamination"
+    entity_id: "pump_P02"
+    h3_cell: "89609688b7bffff"
+    severity: 0.7
+    source_type: "sensor"
+    raw_text: null
+  - offset: "T+1h30m"
+    domain: "health"
+    event_type: "capacity_high"
+    entity_id: "gmch_nagpur"
+    h3_cell: "89609612d6fffff"
+    severity: 0.65
+    source_type: "official"
+    raw_text: null

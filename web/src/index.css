@@ -1,20 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color-scheme: dark;
-  color: #f3f4f6;
-  background-color: #030712;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  --color-page: #F8F9FA;
+  --color-surface: #FFFFFF;
+  --color-raised: #F1F3F5;
+  --color-border: #DEE2E6;
+  --color-text: #212529;
+  --color-secondary: #495057;
+  --color-muted: #6C757D;
+  --color-accent: #0D6EFD;
+  --color-low: #198754;
+  --color-watch: #FFC107;
+  --color-high: #DC3545;
+  --color-unknown: #6C757D;
 }
 
-body {
-  margin: 0;
-  padding: 0;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+:root.dark {
+  --color-page: #0F1720;
+  --color-surface: #151F2B;
+  --color-raised: #1B2735;
+  --color-border: #2A3849;
+  --color-text: #E6EDF3;
+  --color-secondary: #9FB0C0;
+  --color-muted: #7F90A3;
+  --color-accent: #6CA6E0;
+  --color-low: #5FA8A0;
+  --color-watch: #E3B341;
+  --color-high: #E8704F;
+  --color-unknown: #8A97A6;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  
+  body {
+    /* Moody dark urban night aerial background */
+    background-image: url('https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=2400&q=80');
+    background-attachment: fixed;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #0b111a;
+  }
+  
+  /* Dark backdrop overlay to maintain maximum text contrast */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(15, 23, 36, 0.88) 0%, rgba(10, 16, 26, 0.94) 100%);
+    backdrop-filter: blur(4px);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  html.light body::before, :root:not(.dark) body::before {
+    background: linear-gradient(135deg, rgba(248, 249, 250, 0.90) 0%, rgba(241, 243, 245, 0.95) 100%);
+  }
+  
+  html, body, #root {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    color: var(--color-text);
+    font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 20px;
+  }
+  
+  button {
+    font-family: inherit;
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  .panel-surface {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    backdrop-filter: blur(8px);
+  }
+  .panel-raised {
+    background-color: var(--color-raised);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+  }
+  .panel-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+  .text-secondary {
+    color: var(--color-secondary);
+    font-size: 12.5px;
+  }
+  .text-muted {
+    color: var(--color-muted);
+    font-size: 12.5px;
+  }
+  .text-big {
+    font-size: 28px;
+    font-weight: 600;
+  }
 }

@@ -1,0 +1,20 @@
+scenario_id: SCN-C-001
+family: C
+name: Multi-hazard power water comms road concurrent
+description: See scenario_format.yaml for field definitions.
+seed: 255
+time_compression_factor: 60
+ground_truth:
+  polygon_h3_cells:
+    - 8960961233bffff
+    - 8960961230fffff
+    - 89609612377ffff
+    - 89609612363ffff
+    - 8960961237bffff
+    - 89609612d47ffff
+  severity: High
+  notes: Authored by B2 Sanvi. Real NMC H3 res-9 cells from nagpur_h3_res9.geojson.
+events: []
+decoys: []
+feed_loss: []
+contradictions: []
