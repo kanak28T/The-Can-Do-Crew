@@ -1,5 +1,5 @@
-# Start with Python 3.10 (slim = smaller image)
-FROM python:3.10-slim
+# Python 3.12-slim — stable, has wheels for all our deps
+FROM python:3.12-slim
 
 # Inside the container, create /app folder
 WORKDIR /app
