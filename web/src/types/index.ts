@@ -53,6 +53,21 @@ export interface DispatchItem {
   status: 'proposed' | 'approved' | 'rejected' | 'dispatched';
 }
 
+export interface InterventionLogEntry {
+  id: string;           // dispatch id
+  timestamp: string;    // ISO timestamp
+  decision: 'approved' | 'rejected' | 'dispatched';
+  zone: string;
+  action: string;
+  resource: string;
+  priority: 'P1' | 'P2' | 'P3';
+  risk_before: number;
+  risk_after: number;
+  expected_risk_drop: number;
+  eta: string;
+  actor: 'operator';    // extensible for future roles
+}
+
 export interface Scenario {
   id: string;
   name: string;

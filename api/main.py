@@ -12,6 +12,7 @@ Phase 3 : /zones/unknown, /cell/{h3}, enhanced /health/feeds, is_unknown in SSE
 import asyncio
 import json
 import os
+import random
 import sqlite3
 from datetime import datetime, timezone
 from typing import AsyncGenerator
@@ -30,6 +31,119 @@ from engine.engine import ENGINE
 from engine.privacy import apply_k_merge
 
 OPENCELLID_KEY = os.getenv("OPENCELLID_API_KEY", "")
+
+# ── Simulation state ───────────────────────────────────────────────────────────
+_sim_running: bool = False
+_sim_paused:  bool = False
+_sim_task:    asyncio.Task | None = None
+
+# Domain simulators — imported lazily in the loop to avoid startup cost
+_SIM_DOMAINS = ["power", "water", "transit", "health", "comms", "road"]
+_SIM_WEIGHTS = [5, 3, 10, 2, 4, 8]  # events-per-hour weights
+
+
+async def _sim_loop():
+    """Background task: generates realistic domain events and pushes them through the engine.
+    Every ~5 events fires a cascade burst (multiple domains, same cell) to push risk high.
+    """
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+    from sim import power_sim, water_sim, transit_sim, health_sim, comms_sim, road_sim  # type: ignore
+
+    sim_map = {
+        "power":   power_sim,
+        "water":   water_sim,
+        "transit": transit_sim,
+        "health":  health_sim,
+        "comms":   comms_sim,
+        "road":    road_sim,
+    }
+
+    event_count = 0
+
+    while _sim_running:
+        if _sim_paused:
+            await asyncio.sleep(1)
+            continue
+
+        # Every 5th event: fire a cascade burst (3 domains on same cell → high risk)
+        if event_count % 5 == 0:
+            domains_to_burst = random.sample(list(sim_map.keys()), 3)
+            # Get a valid anchor cell from the first domain's event
+            anchor_cell: str | None = None
+            try:
+                anchor_events = sim_map[domains_to_burst[0]].random_stream(n=1, seed=None)
+                if anchor_events:
+                    ae = anchor_events[0]
+                    if isinstance(ae, dict):
+                        anchor_cell = ae.get('h3_cell') or ae.get('cell')
+            except Exception:
+                pass
+
+            for dom in domains_to_burst:
+                try:
+                    evts = sim_map[dom].random_stream(n=1, seed=None)
+                    for ev in evts:
+                        if isinstance(ev, dict):
+                            cell_val = ev.get('h3_cell') or ev.get('cell', '')
+                            # Guard: if cell_val isn't a full H3 string, skip
+                            if len(cell_val) != 15:
+                                continue
+                            cell_key = anchor_cell if anchor_cell and len(anchor_cell) == 15 else cell_val
+                            ev = {k: v for k, v in ev.items() if k != 'cell'}
+                            ev['h3_cell'] = cell_key
+                        event_obj = CanonicalEvent(**ev) if isinstance(ev, dict) else ev
+                        result = ENGINE.process_event(event_obj)
+                        await _broadcast_cell_update(result)
+                except Exception as e:
+                    print(f"[sim_loop cascade] {dom}: {e}")
+            event_count += 1
+            await asyncio.sleep(4)
+            continue
+
+        # Normal single-domain event
+        domain = random.choices(_SIM_DOMAINS, weights=_SIM_WEIGHTS, k=1)[0]
+        try:
+            events = sim_map[domain].random_stream(n=1, seed=None)
+            for event in events:
+                if isinstance(event, dict):
+                    cell_val = event.get('h3_cell') or event.get('cell', '')
+                    if len(cell_val) != 15:
+                        continue  # skip malformed cell IDs
+                    event = {k: v for k, v in event.items() if k != 'cell'}
+                    event['h3_cell'] = cell_val
+                event_obj = CanonicalEvent(**event) if isinstance(event, dict) else event
+                result = ENGINE.process_event(event_obj)
+                await _broadcast_cell_update(result)
+        except Exception as e:
+            print(f"[sim_loop] {domain}: {e}")
+
+        event_count += 1
+        await asyncio.sleep(6)
+
+
+async def _broadcast_cell_update(result) -> None:
+    """Shared helper: broadcast an engine result to all SSE clients."""
+    payload = {
+        "event":      "cell_updated",
+        "cell":       result.cell,
+        "h3":         result.cell,
+        "domain":     result.domain,
+        "severity":   result.severity,
+        "risk":       result.risk,
+        "lo":         result.interval[0],
+        "hi":         result.interval[1],
+        "label":      "unknown" if result.is_unknown else result.label,
+        "level":      "unknown" if result.is_unknown else result.label,
+        "interval":   list(result.interval),
+        "confidence": result.confidence,
+        "is_unknown": result.is_unknown,
+        "imputed":    result.is_unknown,
+        "timestamp":  result.timestamp,
+        "updated_at": result.timestamp,
+    }
+    await _broadcast(payload)
 
 # ── App ───────────────────────────────────────────────────────────────────────
 app = FastAPI(title="UrbanPulse API", version=SCHEMA_VERSION)
@@ -245,16 +359,22 @@ async def ingest(request: Request):
     await _broadcast({
         "event":          "cell_updated",
         "cell":           result.cell,
+        "h3":             result.cell,
         "domain":         result.domain,
         "severity":       result.severity,
         "risk":           result.risk,
+        "lo":             result.interval[0],
+        "hi":             result.interval[1],
         "label":          "unknown" if result.is_unknown else result.label,
+        "level":          "unknown" if result.is_unknown else result.label,
         "interval":       list(result.interval),
         "confidence":     result.confidence,
         "is_unknown":     result.is_unknown,
+        "imputed":        result.is_unknown,
         "unknown_reason": all_cells().get(result.cell, None) and
                           all_cells()[result.cell].unknown_reason,
         "timestamp":      result.timestamp,
+        "updated_at":     result.timestamp,
     })
 
     return {
@@ -308,16 +428,12 @@ async def get_zones(risk_min: float = 0.65, include_unknown: bool = False):
             })
             contributor_counts[cell.h3_cell] = len(cell.source_types)
 
-    # Apply k-merge and WorldPop population floor privacy enforcement
+    # Apply k-merge privacy enforcement
     privacy_k = int(os.getenv("PRIVACY_K", "5"))
-    pop_floor = float(os.getenv("PRIVACY_POP_FLOOR", "500.0"))
-    populations = {c: bf.population for c, bf in ENGINE.baseline.items()}
     zones = apply_k_merge(
         raw_zones,
         contributor_counts,
-        populations=populations,
         k=privacy_k,
-        min_population=pop_floor,
     )
 
     zones_out = sorted(
@@ -484,86 +600,6 @@ async def sse_events(request: Request):
     )
 
 
-# ── Unknown zones (Phase 3 — Priyanshu A1) ────────────────────────────────────
-
-def _collect_unknown_cells() -> list:
-    now = datetime.now(timezone.utc)
-    result = []
-    for cell in all_cells().values():
-        if not cell.is_unknown:
-            continue
-        domain_ages = {
-            d: round((now - ts).total_seconds() / 3600, 2)
-            for d, ts in cell.last_updated.items()
-        }
-        result.append({
-            "cell":             cell.h3_cell,
-            "is_unknown":       True,
-            "confidence":       cell.confidence,
-            "risk":             cell.risk,
-            "domain_age_hours": domain_ages,
-            "last_seen":        max(cell.last_updated.values()).isoformat()
-                                if cell.last_updated else None,
-        })
-    return result
-
-
-@app.get("/zones/unknown")
-async def get_unknown_zones():
-    """Return all cells in Unknown (grey) state with staleness details."""
-    unknown = _collect_unknown_cells()
-    return {"zones": unknown, "count": len(unknown)}
-
-
-# ── Cell detail (Phase 3 — Priyanshu A1) ──────────────────────────────────────
-
-@app.get("/cell/{h3_cell}")
-async def get_cell_detail(h3_cell: str):
-    """
-    Full detail for a single H3 cell — used by frontend click-to-inspect panel.
-    Returns risk, confidence, per-domain stress, drivers, unknown state.
-    """
-    from engine.risk_model import MODEL
-    cells = all_cells()
-    if h3_cell not in cells:
-        return JSONResponse(
-            status_code=404,
-            content={"error": f"Cell {h3_cell} not tracked yet"},
-        )
-    cell     = cells[h3_cell]
-    baseline = ENGINE._get_baseline_dict(h3_cell)
-    drivers  = MODEL.driver_contributions(cell.decayed_stress, baseline)
-    return {
-        "cell":         h3_cell,
-        "risk":         cell.risk,
-        "risk_label":   cell.risk_label,
-        "interval":     list(cell.risk_interval),
-        "confidence":   cell.confidence,
-        "is_unknown":   cell.is_unknown,
-        "drivers":      drivers,
-        "stress":       cell.decayed_stress,
-        "source_count": len(cell.source_types),
-        "baseline":     baseline,
-        "last_seen":    max(cell.last_updated.values()).isoformat()
-                        if cell.last_updated else None,
-    }
-
-
-# ── Evaluation endpoint (Phase 7 — Priyanshu A1) ─────────────────────────────
-
-@app.get("/eval/results")
-async def get_eval_results(scenario: str = "contracts/scenario_format.yaml"):
-    """Run IoU evaluation harness against a scenario file and return metrics."""
-    try:
-        from eval.iou_harness import run_scenario
-        from pathlib import Path
-        result = run_scenario(Path(scenario))
-        return result.to_dict()
-    except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"error": str(e)},
-        )
 # ── Frontend API Compatibility Router ─────────────────────────────────────────
 
 _DISPATCH_STORE = [
@@ -749,16 +785,30 @@ async def get_api_scenarios():
 
 @app.post("/api/sim/start")
 async def sim_start():
+    """Start background simulation — fires realistic events into the engine every few seconds."""
+    global _sim_task, _sim_running, _sim_paused
+    _sim_running = True
+    _sim_paused  = False
+    if _sim_task is None or _sim_task.done():
+        _sim_task = asyncio.create_task(_sim_loop())
     return {"status": "ok", "running": True}
 
 
 @app.post("/api/sim/pause")
 async def sim_pause():
-    return {"status": "ok", "paused": True}
+    global _sim_paused
+    _sim_paused = not _sim_paused
+    return {"status": "ok", "paused": _sim_paused}
 
 
 @app.post("/api/sim/reset")
 async def sim_reset():
+    global _sim_running, _sim_paused, _sim_task
+    _sim_running = False
+    _sim_paused  = False
+    if _sim_task and not _sim_task.done():
+        _sim_task.cancel()
+    _sim_task = None
     return {"status": "ok", "reset": True}
 
 

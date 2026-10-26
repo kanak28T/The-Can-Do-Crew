@@ -28,7 +28,7 @@ import sim.comms_sim as comms_sim
 import sim.road_sim as road_sim
 
 
-API_BASE = os.getenv("API_BASE_URL", "http://localhost:8000")
+API_BASE = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
 
 
 def post_event(event: dict) -> dict:

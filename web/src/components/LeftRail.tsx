@@ -1,7 +1,31 @@
 import { useAppStore } from '../store/useAppStore';
+import { api } from '../lib/api';
 
 export default function LeftRail() {
   const s = useAppStore();
+
+  const handleStart = async () => {
+    s.setSimRunning(true);
+    s.setSimPaused(false);
+    try { await api.simStart(); } catch (_) {}
+  };
+
+  const handlePause = async () => {
+    s.setSimPaused(!s.simPaused);
+    try { await api.simPause(); } catch (_) {}
+  };
+
+  const handleReset = async () => {
+    s.setSimRunning(false);
+    s.setSimPaused(false);
+    s.setFeedCutPct(0);
+    try { await api.simReset(); } catch (_) {}
+  };
+
+  const handleFeedCut = async (pct: number) => {
+    s.setFeedCutPct(pct);
+    try { await api.simFeedLoss(pct, s.lossPattern); } catch (_) {}
+  };
   const statusColor = (level: string) => level === 'high' ? 'var(--color-high)' : level === 'watch' ? 'var(--color-watch)' : level === 'low' ? 'var(--color-low)' : 'var(--color-unknown)';
   const liveItems = [
     { label: 'High zones', value: s.highZones, color: 'var(--color-high)' },
@@ -16,9 +40,9 @@ export default function LeftRail() {
       <div className='panel-surface' style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div className='panel-title'>Stress console</div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => s.setSimRunning(true)} className='text-secondary' style={{ flex: 1, background: 'var(--color-raised)', border: '1px solid var(--color-border)', borderRadius: 4, padding: '6px 0', fontSize: 12.5, color: s.simRunning ? 'var(--color-low)' : 'var(--color-text)' }}>Start</button>
-          <button onClick={() => s.setSimPaused(!s.simPaused)} className='text-secondary' style={{ flex: 1, background: 'var(--color-raised)', border: '1px solid var(--color-border)', borderRadius: 4, padding: '6px 0', fontSize: 12.5 }}>Pause</button>
-          <button onClick={() => { s.setSimRunning(false); s.setSimPaused(false); s.setFeedCutPct(0); }} className='text-secondary' style={{ flex: 1, background: 'var(--color-raised)', border: '1px solid var(--color-border)', borderRadius: 4, padding: '6px 0', fontSize: 12.5 }}>Reset</button>
+          <button onClick={handleStart} className='text-secondary' style={{ flex: 1, background: 'var(--color-raised)', border: '1px solid var(--color-border)', borderRadius: 4, padding: '6px 0', fontSize: 12.5, color: s.simRunning ? 'var(--color-low)' : 'var(--color-text)' }}>Start</button>
+          <button onClick={handlePause} className='text-secondary' style={{ flex: 1, background: 'var(--color-raised)', border: '1px solid var(--color-border)', borderRadius: 4, padding: '6px 0', fontSize: 12.5 }}>Pause</button>
+          <button onClick={handleReset} className='text-secondary' style={{ flex: 1, background: 'var(--color-raised)', border: '1px solid var(--color-border)', borderRadius: 4, padding: '6px 0', fontSize: 12.5 }}>Reset</button>
         </div>
         <div>
           <div className='text-muted' style={{ marginBottom: 4 }}>Speed: {s.simSpeed}x</div>
@@ -26,7 +50,7 @@ export default function LeftRail() {
         </div>
         <div>
           <div className='text-muted' style={{ marginBottom: 4 }}>Cut feeds: {s.feedCutPct}%</div>
-          <input type='range' min='0' max='60' step='5' value={s.feedCutPct} onChange={(e) => s.setFeedCutPct(Number(e.target.value))} style={{ width: '100%' }} aria-label='Feed cut percentage' />
+          <input type='range' min='0' max='60' step='5' value={s.feedCutPct} onChange={(e) => handleFeedCut(Number(e.target.value))} style={{ width: '100%' }} aria-label='Feed cut percentage' />
         </div>
         <div>
           <div className='text-muted' style={{ marginBottom: 4 }}>Loss pattern</div>

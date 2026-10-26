@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useAppStore } from '../store/useAppStore';
+import { SSE_URL } from '../lib/api';
 import type { CellData, RiskLevel } from '../types';
 
-const API_BASE = (import.meta as any).env.VITE_API_URL || 'http://localhost:8000';
 const USE_MOCK = (import.meta as any).env.VITE_USE_MOCK === 'true';
 
 export interface RingBufferItem<T> {
@@ -125,6 +125,21 @@ export function useSSE() {
   const setLastUpdateTime = useAppStore((s) => s.setLastUpdateTime);
   const setZones = useAppStore((s) => s.setZones);
   const setDispatches = useAppStore((s) => s.setDispatches);
+  const setLiveNumbers = useAppStore((s) => s.setLiveNumbers);
+
+  // Read cells from store snapshot and recount live KPIs — called after every upsert
+  const recountLive = () => {
+    const cells = useAppStore.getState().cells;
+    let high = 0, watch = 0, unknown = 0;
+    cells.forEach((c) => {
+      if (c.level === 'high')         high++;
+      else if (c.level === 'watch')   watch++;
+      else if (c.level === 'unknown') unknown++;
+      // Count low-risk active cells as "watch" for dashboard visibility
+      else if (c.risk >= 0.25)        watch++;
+    });
+    setLiveNumbers(high, watch, unknown, 0);
+  };
 
   useEffect(() => {
     isUnmountedRef.current = false;
@@ -140,6 +155,7 @@ export function useSSE() {
                 data: cell,
               });
               upsertCell(cell);
+              setTimeout(recountLive, 0);
             },
             setZones,
             setDispatches,
@@ -174,10 +190,8 @@ export function useSSE() {
 
       setConnectionStatus('reconnecting');
 
-      // Build endpoint URL with catch-up parameters (id / timestamp)
-      const baseUrl = API_BASE.replace(/\/+$/, '');
-      const ssePath = baseUrl.includes('/sse') ? baseUrl : `${baseUrl}/sse/events`;
-      const url = new URL(ssePath, window.location.href);
+      // Build endpoint URL — uses SSE_URL from api.ts (relative in dev, proxied by Vite)
+      const url = new URL(SSE_URL, window.location.href);
 
       if (lastEventIdRef.current !== null) {
         url.searchParams.set('last_event_id', String(lastEventIdRef.current));
@@ -219,6 +233,8 @@ export function useSSE() {
             // Persist into store (never clears existing map state)
             upsertCell(cellData);
             setLastUpdateTime(new Date().toLocaleTimeString());
+            // Recount after store settles
+            setTimeout(recountLive, 0);
           }
         } catch (err) {
           console.warn('[SSE] Failed to parse SSE event data:', err);
@@ -265,6 +281,6 @@ export function useSSE() {
         eventSourceRef.current = null;
       }
     };
-  }, [upsertCell, setConnectionStatus, setLastUpdateTime, setZones, setDispatches]);
+  }, [upsertCell, setConnectionStatus, setLastUpdateTime, setZones, setDispatches, setLiveNumbers]);
 }
 

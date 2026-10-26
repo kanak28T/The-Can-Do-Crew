@@ -3,6 +3,7 @@ import DispatchLog from './DispatchLog';
 import CausalGraph from './CausalGraph';
 import PrivacyChart from './PrivacyChart';
 import EvalChart from './EvalChart';
+import InterventionLog from './InterventionLog';
 
 export default function BottomDock() {
   const dockCollapsed = useAppStore((s) => s.dockCollapsed);
@@ -10,6 +11,7 @@ export default function BottomDock() {
   const dockTab = useAppStore((s) => s.dockTab);
   const setDockTab = useAppStore((s) => s.setDockTab);
   const dispatches = useAppStore((s) => s.dispatches);
+  const interventionLog = useAppStore((s) => s.interventionLog);
 
   return (
     <div
@@ -75,6 +77,22 @@ export default function BottomDock() {
             >
               🎯 IoU Evaluation
             </button>
+            <button
+              type="button"
+              onClick={() => { setDockTab('intervention' as any); if (dockCollapsed) toggleDock(); }}
+              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+                dockTab === ('intervention' as any)
+                  ? 'bg-[var(--color-surface)] text-[var(--color-accent)] shadow-sm'
+                  : 'text-[var(--color-secondary)] hover:text-[var(--color-text)]'
+              }`}
+            >
+              📋 Intervention Log
+              {interventionLog.length > 0 && (
+                <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 text-[9px] font-bold rounded-full bg-[var(--color-accent)] text-white">
+                  {interventionLog.length > 9 ? '9+' : interventionLog.length}
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -99,6 +117,7 @@ export default function BottomDock() {
           )}
           {dockTab === 'privacy' && <PrivacyChart />}
           {dockTab === 'evaluation' && <EvalChart />}
+          {(dockTab as any) === 'intervention' && <InterventionLog />}
         </div>
       )}
     </div>

@@ -66,6 +66,7 @@ export default function DispatchLog() {
   const dispatches = useAppStore((s) => s.dispatches);
   const setDispatches = useAppStore((s) => s.setDispatches);
   const updateDispatchStatus = useAppStore((s) => s.updateDispatchStatus);
+  const addInterventionLog = useAppStore((s) => s.addInterventionLog);
 
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState<string>('');
@@ -90,6 +91,23 @@ export default function DispatchLog() {
     setLoadingActionId(id);
     updateDispatchStatus(id, 'approved');
     setAnnouncement(`Approved emergency intervention for ${zone}: ${action}`);
+    const dispatch = dispatches.find((d) => d.id === id);
+    if (dispatch) {
+      addInterventionLog({
+        id,
+        timestamp: new Date().toISOString(),
+        decision: 'approved',
+        zone: dispatch.zone,
+        action: dispatch.action,
+        resource: dispatch.resource,
+        priority: dispatch.priority,
+        risk_before: dispatch.risk_after + dispatch.expected_risk_drop,
+        risk_after: dispatch.risk_after,
+        expected_risk_drop: dispatch.expected_risk_drop,
+        eta: dispatch.eta,
+        actor: 'operator',
+      });
+    }
     try {
       await api.approveDispatch(id);
     } catch (err) {
@@ -103,6 +121,23 @@ export default function DispatchLog() {
     setLoadingActionId(id);
     updateDispatchStatus(id, 'rejected');
     setAnnouncement(`Rejected emergency intervention for ${zone}: ${action}`);
+    const dispatch = dispatches.find((d) => d.id === id);
+    if (dispatch) {
+      addInterventionLog({
+        id,
+        timestamp: new Date().toISOString(),
+        decision: 'rejected',
+        zone: dispatch.zone,
+        action: dispatch.action,
+        resource: dispatch.resource,
+        priority: dispatch.priority,
+        risk_before: dispatch.risk_after + dispatch.expected_risk_drop,
+        risk_after: dispatch.risk_after,
+        expected_risk_drop: dispatch.expected_risk_drop,
+        eta: dispatch.eta,
+        actor: 'operator',
+      });
+    }
     try {
       await api.rejectDispatch(id);
     } catch (err) {

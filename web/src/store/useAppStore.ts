@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { CellData, ZoneData, DispatchItem, ConnectionStatus, RiskLevel } from '../types';
+import type { CellData, ZoneData, DispatchItem, ConnectionStatus, InterventionLogEntry } from '../types';
 
 interface AppState {
   theme: 'dark' | 'light';
@@ -51,6 +51,11 @@ interface AppState {
 
   whatIfResult: { risk_before: number; risk_after: number; lo: number; hi: number } | null;
   setWhatIfResult: (r: { risk_before: number; risk_after: number; lo: number; hi: number } | null) => void;
+
+  // Intervention audit log
+  interventionLog: InterventionLogEntry[];
+  addInterventionLog: (entry: InterventionLogEntry) => void;
+  clearInterventionLog: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -109,4 +114,8 @@ export const useAppStore = create<AppState>((set) => ({
 
   whatIfResult: null,
   setWhatIfResult: (r) => set({ whatIfResult: r }),
+
+  interventionLog: [],
+  addInterventionLog: (entry) => set((s) => ({ interventionLog: [entry, ...s.interventionLog] })),
+  clearInterventionLog: () => set({ interventionLog: [] }),
 }));
