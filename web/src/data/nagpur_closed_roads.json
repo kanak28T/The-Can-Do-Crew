@@ -1,0 +1,102 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "R-14",
+        "name": "Corridor R-14 (Wardha Road)",
+        "status": "closed",
+        "reason": "Waterlogging & Feeder Cable Hazard",
+        "severity": "critical"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            79.0882,
+            21.1458
+          ],
+          [
+            79.0824,
+            21.1356
+          ],
+          [
+            79.076,
+            21.125
+          ],
+          [
+            79.0711,
+            21.1158
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "ROUTE-4-SEG",
+        "name": "Route 4 Arterial Segment",
+        "status": "closed",
+        "reason": "Transit Suspension / Road Inundation",
+        "severity": "high"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            79.134119,
+            21.187078
+          ],
+          [
+            79.135883,
+            21.181924
+          ],
+          [
+            79.131313,
+            21.174487
+          ],
+          [
+            79.132375,
+            21.166185
+          ],
+          [
+            79.14681,
+            21.165595
+          ],
+          [
+            79.142239,
+            21.158158
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "CA-02",
+        "name": "Central Avenue Metro Underpass",
+        "status": "closed",
+        "reason": "Debris & Tree Fall",
+        "severity": "medium"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            79.095,
+            21.15
+          ],
+          [
+            79.105,
+            21.152
+          ],
+          [
+            79.115,
+            21.155
+          ]
+        ]
+      }
+    }
+  ]
+}

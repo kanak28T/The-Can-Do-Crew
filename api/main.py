@@ -460,3 +460,85 @@ async def sse_events(request: Request):
             "Connection":        "keep-alive",
         },
     )
+
+
+# ── Unknown zones (Phase 3 — Priyanshu A1) ────────────────────────────────────
+
+def _collect_unknown_cells() -> list:
+    now = datetime.now(timezone.utc)
+    result = []
+    for cell in all_cells().values():
+        if not cell.is_unknown:
+            continue
+        domain_ages = {
+            d: round((now - ts).total_seconds() / 3600, 2)
+            for d, ts in cell.last_updated.items()
+        }
+        result.append({
+            "cell":             cell.h3_cell,
+            "is_unknown":       True,
+            "confidence":       cell.confidence,
+            "risk":             cell.risk,
+            "domain_age_hours": domain_ages,
+            "last_seen":        max(cell.last_updated.values()).isoformat()
+                                if cell.last_updated else None,
+        })
+    return result
+
+
+@app.get("/zones/unknown")
+async def get_unknown_zones():
+    """Return all cells in Unknown (grey) state with staleness details."""
+    unknown = _collect_unknown_cells()
+    return {"zones": unknown, "count": len(unknown)}
+
+
+# ── Cell detail (Phase 3 — Priyanshu A1) ──────────────────────────────────────
+
+@app.get("/cell/{h3_cell}")
+async def get_cell_detail(h3_cell: str):
+    """
+    Full detail for a single H3 cell — used by frontend click-to-inspect panel.
+    Returns risk, confidence, per-domain stress, drivers, unknown state.
+    """
+    from engine.risk_model import MODEL
+    cells = all_cells()
+    if h3_cell not in cells:
+        return JSONResponse(
+            status_code=404,
+            content={"error": f"Cell {h3_cell} not tracked yet"},
+        )
+    cell     = cells[h3_cell]
+    baseline = ENGINE._get_baseline_dict(h3_cell)
+    drivers  = MODEL.driver_contributions(cell.decayed_stress, baseline)
+    return {
+        "cell":         h3_cell,
+        "risk":         cell.risk,
+        "risk_label":   cell.risk_label,
+        "interval":     list(cell.risk_interval),
+        "confidence":   cell.confidence,
+        "is_unknown":   cell.is_unknown,
+        "drivers":      drivers,
+        "stress":       cell.decayed_stress,
+        "source_count": len(cell.source_types),
+        "baseline":     baseline,
+        "last_seen":    max(cell.last_updated.values()).isoformat()
+                        if cell.last_updated else None,
+    }
+
+
+# ── Evaluation endpoint (Phase 7 — Priyanshu A1) ─────────────────────────────
+
+@app.get("/eval/results")
+async def get_eval_results(scenario: str = "contracts/scenario_format.yaml"):
+    """Run IoU evaluation harness against a scenario file and return metrics."""
+    try:
+        from eval.iou_harness import run_scenario
+        from pathlib import Path
+        result = run_scenario(Path(scenario))
+        return result.to_dict()
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(e)},
+        )
