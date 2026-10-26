@@ -6,15 +6,26 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // /api/* → backend (keeps the /api prefix — backend serves /api/*)
+      // /api/* → backend (keeps /api prefix — backend serves /api/*)
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
+            console.error('[proxy] /api error:', err.message);
+          });
+        },
       },
       // /sse/* → backend SSE stream
       '/sse': {
-        target: 'http://localhost:8000',
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
+        ws: true,
+        configure: (proxy) => {
+          proxy.on('error', (err) => {
+            console.error('[proxy] /sse error:', err.message);
+          });
+        },
       },
     },
   },
