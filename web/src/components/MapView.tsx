@@ -1,175 +1,174 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import nagpurH3Res8 from '../data/nagpur_h3_res8.json';
-import nagpurH3Res9 from '../data/nagpur_h3_res9.json';
+import nagpurH3Grid from '../data/nagpur_h3_res9.json';
 import nagpurWards from '../data/nagpur_wards.json';
-import nagpurHospitals from '../data/nagpur_hospitals.json';
-import nagpurClosedRoads from '../data/nagpur_closed_roads.json';
 import { useAppStore } from '../store/useAppStore';
 
 const NAGPUR_CENTER: [number, number] = [79.0882, 21.1458];
-const ZOOM_SWITCH_THRESHOLD = 12.0;
+const MAPTILER_KEY = (import.meta as any).env.VITE_MAPTILER_KEY || 'ZLrsbWlEexU5e2aU0mZB';
 
-// High-reliability Carto basemap styles with zero API key dependencies
-const CARTO_DARK_STYLE: any = {
-  version: 8,
-  sources: {
-    'carto-dark': {
-      type: 'raster',
-      tiles: [
-        'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-        'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-        'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-        'https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-      ],
-      tileSize: 256,
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+const getRasterMapStyle = (theme: 'dark' | 'light'): maplibregl.StyleSpecification => {
+  const isDark = theme === 'dark';
+  const tileUrl = `https://api.maptiler.com/maps/${isDark ? 'dataviz-dark' : 'streets-v2'}/256/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`;
+
+  return {
+    version: 8,
+    sources: {
+      'maptiler-raster': {
+        type: 'raster',
+        tiles: [tileUrl],
+        tileSize: 256,
+        attribution: '&copy; <a href="https://www.maptiler.com/copyright/" target="_blank">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+      },
     },
-  },
-  layers: [
-    {
-      id: 'carto-dark-tiles',
-      type: 'raster',
-      source: 'carto-dark',
-      minzoom: 0,
-      maxzoom: 19,
-    },
-  ],
+    layers: [
+      {
+        id: 'maptiler-raster-layer',
+        type: 'raster',
+        source: 'maptiler-raster',
+        minzoom: 0,
+        maxzoom: 19,
+      },
+    ],
+  };
 };
 
-const CARTO_LIGHT_STYLE: any = {
-  version: 8,
-  sources: {
-    'carto-light': {
-      type: 'raster',
-      tiles: [
-        'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-        'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-        'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-        'https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-      ],
-      tileSize: 256,
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    },
+/* ── Layer color configurations ─────────────────────────────── */
+
+type LayerKey = 'risk' | 'roads' | 'hospitals' | 'feed_coverage';
+
+interface LayerConfig {
+  fillColor: maplibregl.ExpressionSpecification;
+  fillOpacity: number;
+  outlineColor: maplibregl.ExpressionSpecification;
+  outlineWidth: maplibregl.ExpressionSpecification;
+  legend: { label: string; color: string }[];
+  legendTitle: string;
+}
+
+const LAYER_CONFIGS: Record<LayerKey, LayerConfig> = {
+  risk: {
+    fillColor: [
+      'case',
+      ['==', ['get', 'status'], 'high'], '#ef4444',
+      ['==', ['get', 'status'], 'medium'], '#f59e0b',
+      ['==', ['get', 'status'], 'low'], '#10b981',
+      '#94a3b8',
+    ],
+    fillOpacity: 0.45,
+    outlineColor: [
+      'case',
+      ['==', ['get', 'status'], 'high'], '#ef4444',
+      'rgba(0, 0, 0, 0.25)',
+    ],
+    outlineWidth: [
+      'case',
+      ['==', ['get', 'status'], 'high'], 1.8,
+      0.6,
+    ],
+    legend: [
+      { label: 'High Risk', color: '#ef4444' },
+      { label: 'Watch', color: '#f59e0b' },
+      { label: 'Low Risk', color: '#10b981' },
+      { label: 'Unknown', color: '#94a3b8' },
+    ],
+    legendTitle: 'Risk Levels',
   },
-  layers: [
-    {
-      id: 'carto-light-tiles',
-      type: 'raster',
-      source: 'carto-light',
-      minzoom: 0,
-      maxzoom: 19,
-    },
-  ],
+  roads: {
+    fillColor: [
+      'interpolate', ['linear'],
+      ['coalesce', ['get', 'risk'], 0.5],
+      0, '#a7f3d0',
+      0.3, '#6ee7b7',
+      0.5, '#fbbf24',
+      0.7, '#f97316',
+      1.0, '#dc2626',
+    ],
+    fillOpacity: 0.5,
+    outlineColor: [
+      'interpolate', ['linear'],
+      ['coalesce', ['get', 'risk'], 0.5],
+      0, '#059669',
+      0.5, '#d97706',
+      1.0, '#b91c1c',
+    ],
+    outlineWidth: ['literal', 1.2] as any,
+    legend: [
+      { label: 'Clear', color: '#6ee7b7' },
+      { label: 'Congested', color: '#fbbf24' },
+      { label: 'Disrupted', color: '#f97316' },
+      { label: 'Blocked', color: '#dc2626' },
+    ],
+    legendTitle: 'Road Stress',
+  },
+  hospitals: {
+    fillColor: [
+      'interpolate', ['linear'],
+      ['coalesce', ['get', 'risk'], 0.5],
+      0, '#dbeafe',
+      0.3, '#60a5fa',
+      0.5, '#a78bfa',
+      0.7, '#c084fc',
+      1.0, '#e879f9',
+    ],
+    fillOpacity: 0.5,
+    outlineColor: [
+      'interpolate', ['linear'],
+      ['coalesce', ['get', 'risk'], 0.5],
+      0, '#3b82f6',
+      0.5, '#7c3aed',
+      1.0, '#c026d3',
+    ],
+    outlineWidth: ['literal', 1.0] as any,
+    legend: [
+      { label: '< 1 km', color: '#60a5fa' },
+      { label: '1-2 km', color: '#a78bfa' },
+      { label: '2-3 km', color: '#c084fc' },
+      { label: '> 3 km (Isolated)', color: '#e879f9' },
+    ],
+    legendTitle: 'Hospital Proximity',
+  },
+  feed_coverage: {
+    fillColor: [
+      'case',
+      ['>=', ['coalesce', ['get', 'risk'], 0.5], 0.7], '#f87171',
+      ['>=', ['coalesce', ['get', 'risk'], 0.5], 0.4], '#fbbf24',
+      '#4ade80',
+    ],
+    fillOpacity: 0.4,
+    outlineColor: [
+      'case',
+      ['>=', ['coalesce', ['get', 'risk'], 0.5], 0.7], '#ef4444',
+      ['>=', ['coalesce', ['get', 'risk'], 0.5], 0.4], '#f59e0b',
+      '#22c55e',
+    ],
+    outlineWidth: ['literal', 0.8] as any,
+    legend: [
+      { label: 'All Feeds Active', color: '#4ade80' },
+      { label: 'Some Missing', color: '#fbbf24' },
+      { label: 'Critical Gaps', color: '#f87171' },
+    ],
+    legendTitle: 'Feed Coverage',
+  },
 };
 
-export default function MapView() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const popupRef = useRef<maplibregl.Popup | null>(null);
-
-  const activeLayer = useAppStore((s) => s.activeLayer);
-  const setActiveLayer = useAppStore((s) => s.setActiveLayer);
-  const setSelectedCellH3 = useAppStore((s) => s.setSelectedCellH3);
-  const setSelectedZoneId = useAppStore((s) => s.setSelectedZoneId);
-  const theme = useAppStore((s) => s.theme);
-
-  const [currentZoom, setCurrentZoom] = useState(11.2);
-  const [activeResolution, setActiveResolution] = useState<'res8' | 'res9'>('res8');
-  const [showA11yHelp, setShowA11yHelp] = useState(false);
-
-  // Initialize Map
-  useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
-
-    const baseStyle = theme === 'dark' ? CARTO_DARK_STYLE : CARTO_LIGHT_STYLE;
-
-    const map = new maplibregl.Map({
-      container: containerRef.current,
-      style: baseStyle,
-      center: NAGPUR_CENTER,
-      zoom: 11.2,
-      maxBounds: [[78.5, 20.5], [79.5, 21.5]],
-      keyboard: true, // Enable native keyboard handling
-    });
-    mapRef.current = map;
-
-    map.addControl(new maplibregl.NavigationControl({ showCompass: true, visualizePitch: true }), 'top-right');
-    map.addControl(new maplibregl.ScaleControl({ maxWidth: 100, unit: 'metric' }), 'bottom-right');
-
-    const updateZoomState = () => {
-      const z = map.getZoom();
-      setCurrentZoom(Number(z.toFixed(1)));
-      setActiveResolution(z >= ZOOM_SWITCH_THRESHOLD ? 'res9' : 'res8');
-    };
-
-    map.on('zoom', updateZoomState);
-
-    map.on('load', () => {
-      updateZoomState();
-      map.resize();
-
-      // ── Layer 1: H3 Res 8 Grid (Zoomed Out / Macro, maxzoom: 12) ──
-      map.addSource('h3-res8', {
-        type: 'geojson',
-        data: nagpurH3Res8 as any,
-        generateId: true,
-      });
-
-      map.addLayer({
-        id: 'h3-res8-fill',
-        type: 'fill',
-        source: 'h3-res8',
-        maxzoom: ZOOM_SWITCH_THRESHOLD,
-        paint: {
-          'fill-color': [
-            'case',
-            ['==', ['get', 'status'], 'high'], '#DC3545',
-            ['==', ['get', 'status'], 'medium'], '#FFC107',
-            ['==', ['get', 'status'], 'low'], '#198754',
-            '#6C757D',
-          ],
-          'fill-opacity': 0.38,
-        },
-      });
-
-      map.addLayer({
-        id: 'h3-res8-outline',
-        type: 'line',
-        source: 'h3-res8',
-        maxzoom: ZOOM_SWITCH_THRESHOLD,
-        paint: {
-          'line-color': [
-            'case',
-            ['==', ['get', 'status'], 'high'], '#DC3545',
-            'rgba(255, 255, 255, 0.25)',
-          ],
-          'line-width': ['case', ['==', ['get', 'status'], 'high'], 1.8, 0.8],
-        },
-      });
-
-      // ── Layer 2: H3 Res 9 Grid (Zoomed In / Micro, minzoom: 12) ──
-      map.addSource('h3-cells', {
-        type: 'geojson',
-        data: nagpurH3Res9 as any,
-        generateId: true,
+function addOverlays(map: maplibregl.Map) {
+  try {
+    if (!map.getSource('h3-cells')) {
+      map.addSource('h3-cells', { 
+        type: 'geojson', 
+        data: nagpurH3Grid as any, 
+        generateId: true 
       });
 
       map.addLayer({
         id: 'h3-cells-fill',
         type: 'fill',
         source: 'h3-cells',
-        minzoom: ZOOM_SWITCH_THRESHOLD,
         paint: {
-          'fill-color': [
-            'case',
-            ['==', ['get', 'status'], 'high'], '#E8704F',
-            ['==', ['get', 'status'], 'medium'], '#E3B341',
-            ['==', ['get', 'status'], 'low'], '#5FA8A0',
-            '#8A97A6',
-          ],
-          'fill-opacity': 0.42,
+          'fill-color': LAYER_CONFIGS.risk.fillColor,
+          'fill-opacity': LAYER_CONFIGS.risk.fillOpacity,
         },
       });
 
@@ -177,21 +176,17 @@ export default function MapView() {
         id: 'h3-cells-outline',
         type: 'line',
         source: 'h3-cells',
-        minzoom: ZOOM_SWITCH_THRESHOLD,
         paint: {
-          'line-color': [
-            'case',
-            ['==', ['get', 'status'], 'high'], '#E8704F',
-            'rgba(255, 255, 255, 0.2)',
-          ],
-          'line-width': ['case', ['==', ['get', 'status'], 'high'], 1.6, 0.6],
+          'line-color': LAYER_CONFIGS.risk.outlineColor,
+          'line-width': LAYER_CONFIGS.risk.outlineWidth,
         },
       });
+    }
 
-      // ── Layer 3: Ward Boundaries Overlay (Prabhags 1-30) ──
+    if (!map.getSource('nagpur-wards')) {
       map.addSource('nagpur-wards', {
         type: 'geojson',
-        data: nagpurWards as any,
+        data: nagpurWards as any
       });
 
       map.addLayer({
@@ -199,11 +194,11 @@ export default function MapView() {
         type: 'line',
         source: 'nagpur-wards',
         paint: {
-          'line-color': '#38bdf8',
-          'line-width': 2.0,
+          'line-color': '#0284c7',
+          'line-width': 2.4,
           'line-dasharray': [3, 2],
-          'line-opacity': 0.85,
-        },
+          'line-opacity': 0.95
+        }
       });
 
       map.addLayer({
@@ -214,420 +209,219 @@ export default function MapView() {
           'text-field': ['get', 'name'],
           'text-size': 11,
           'text-anchor': 'center',
-          'text-allow-overlap': false,
+          'text-allow-overlap': false
         },
         paint: {
-          'text-color': '#ffffff',
-          'text-halo-color': 'rgba(15, 23, 42, 0.95)',
-          'text-halo-width': 2.0,
-        },
+          'text-color': '#0f172a',
+          'text-halo-color': '#ffffff',
+          'text-halo-width': 2.0
+        }
       });
+    }
+  } catch (err) {
+    console.warn('[Map Overlays] Notice:', err);
+  }
+}
 
-      // ── Layer 4: Closed-Road Dashed Lines (Step 1) ──
-      map.addSource('nagpur-closed-roads', {
-        type: 'geojson',
-        data: nagpurClosedRoads as any,
-      });
+function applyLayerStyle(map: maplibregl.Map, layer: LayerKey) {
+  const config = LAYER_CONFIGS[layer];
+  try {
+    if (map.getLayer('h3-cells-fill')) {
+      map.setPaintProperty('h3-cells-fill', 'fill-color', config.fillColor);
+      map.setPaintProperty('h3-cells-fill', 'fill-opacity', config.fillOpacity);
+    }
+    if (map.getLayer('h3-cells-outline')) {
+      map.setPaintProperty('h3-cells-outline', 'line-color', config.outlineColor);
+      map.setPaintProperty('h3-cells-outline', 'line-width', config.outlineWidth);
+    }
+  } catch (err) {
+    console.warn('[Map Layer Switch]', err);
+  }
+}
 
-      // Crimson casing glow
-      map.addLayer({
-        id: 'closed-roads-casing',
-        type: 'line',
-        source: 'nagpur-closed-roads',
-        paint: {
-          'line-color': '#ef4444',
-          'line-width': 7.0,
-          'line-opacity': 0.35,
-        },
-      });
+export default function MapView() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const activeLayer = useAppStore((s) => s.activeLayer);
+  const setActiveLayer = useAppStore((s) => s.setActiveLayer);
+  const setSelectedCellH3 = useAppStore((s) => s.setSelectedCellH3);
+  const theme = useAppStore((s) => s.theme);
 
-      // Distinct dashed pattern line
-      map.addLayer({
-        id: 'closed-roads-line',
-        type: 'line',
-        source: 'nagpur-closed-roads',
-        paint: {
-          'line-color': '#f43f5e',
-          'line-width': 3.5,
-          'line-dasharray': [3, 2],
-          'line-opacity': 0.95,
-        },
-      });
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current) return;
 
-      // Closed road symbol labels
-      map.addLayer({
-        id: 'closed-roads-label',
-        type: 'symbol',
-        source: 'nagpur-closed-roads',
-        layout: {
-          'text-field': ['concat', '⛔ ', ['get', 'name'], ' (CLOSED)'],
-          'text-size': 10.5,
-          'symbol-placement': 'line',
-          'text-offset': [0, 1.2],
-        },
-        paint: {
-          'text-color': '#fca5a5',
-          'text-halo-color': '#450a0a',
-          'text-halo-width': 2,
-        },
-      });
+    const map = new maplibregl.Map({
+      container: containerRef.current,
+      style: getRasterMapStyle(theme),
+      center: NAGPUR_CENTER,
+      zoom: 12,
+      minZoom: 9,
+      maxBounds: [[78.5, 20.5], [79.6, 21.6]],
+    });
+    mapRef.current = map;
 
-      // ── Layer 5: Hospital Icons & Point Markers (Step 1) ──
-      map.addSource('nagpur-hospitals', {
-        type: 'geojson',
-        data: nagpurHospitals as any,
-      });
+    map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
-      // Red circular hospital beacon
-      map.addLayer({
-        id: 'hospital-points-circle',
-        type: 'circle',
-        source: 'nagpur-hospitals',
-        paint: {
-          'circle-radius': 9,
-          'circle-color': '#ef4444',
-          'circle-stroke-width': 2.5,
-          'circle-stroke-color': '#ffffff',
-        },
-      });
+    const ro = new ResizeObserver(() => {
+      if (mapRef.current) mapRef.current.resize();
+    });
+    ro.observe(containerRef.current);
 
-      // Cross symbol inside circle
-      map.addLayer({
-        id: 'hospital-points-cross',
-        type: 'symbol',
-        source: 'nagpur-hospitals',
-        layout: {
-          'text-field': '+',
-          'text-size': 14,
-          'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
-          'text-anchor': 'center',
-          'text-allow-overlap': true,
-        },
-        paint: {
-          'text-color': '#ffffff',
-        },
-      });
-
-      // Hospital text name label
-      map.addLayer({
-        id: 'hospital-points-label',
-        type: 'symbol',
-        source: 'nagpur-hospitals',
-        layout: {
-          'text-field': ['get', 'name'],
-          'text-size': 11,
-          'text-anchor': 'top',
-          'text-offset': [0, 1.3],
-          'text-allow-overlap': false,
-        },
-        paint: {
-          'text-color': '#ffffff',
-          'text-halo-color': '#0f172a',
-          'text-halo-width': 2.5,
-        },
-      });
+    map.on('load', () => {
+      addOverlays(map);
     });
 
-    // ── Interaction: H3 Cell Click (Res 8 & Res 9) ──
-    const handleCellClick = (e: any) => {
+    map.on('style.load', () => {
+      addOverlays(map);
+    });
+
+    map.on('click', 'h3-cells-fill', (e: any) => {
       if (e.features && e.features.length > 0) {
         const props = e.features[0].properties;
         const cellId = props.h3_cell || props.cell;
         setSelectedCellH3(cellId);
-        if (props.ward) {
-          setSelectedZoneId(props.ward);
-        }
-      }
-    };
 
-    map.on('click', 'h3-cells-fill', handleCellClick);
-    map.on('click', 'h3-res8-fill', handleCellClick);
-
-    map.on('mousemove', 'h3-cells-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
-    map.on('mouseleave', 'h3-cells-fill', () => { map.getCanvas().style.cursor = ''; });
-    map.on('mousemove', 'h3-res8-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
-    map.on('mouseleave', 'h3-res8-fill', () => { map.getCanvas().style.cursor = ''; });
-
-    // ── Interaction: Closed Road Click ──
-    map.on('click', 'closed-roads-line', (e: any) => {
-      if (!e.features || !e.features[0]) return;
-      const feat = e.features[0];
-      const p = feat.properties;
-      const coords = e.lngLat;
-
-      if (popupRef.current) popupRef.current.remove();
-      popupRef.current = new maplibregl.Popup({ closeButton: true, offset: 12 })
-        .setLngLat(coords)
-        .setHTML(`
-          <div style="font-family: sans-serif; padding: 4px; font-size: 12px; color: #1e293b;">
-            <div style="font-weight: 700; color: #b91c1c; display: flex; align-items: center; gap: 4px;">
-              <span>⛔</span> ${p.name || 'Closed Corridor'}
+        // Show popup with cell info
+        const risk = props.risk ?? 0;
+        const status = props.status ?? 'unknown';
+        new maplibregl.Popup({ closeOnClick: true, maxWidth: '220px' })
+          .setLngLat(e.lngLat)
+          .setHTML(`
+            <div style="font-family:Inter,system-ui,sans-serif;font-size:12px;line-height:1.5">
+              <div style="font-weight:700;margin-bottom:4px">${cellId.substring(0,12)}…</div>
+              <div>Status: <strong style="color:${status === 'high' ? '#ef4444' : status === 'medium' ? '#f59e0b' : '#10b981'}">${status.toUpperCase()}</strong></div>
+              <div>Risk: <strong>${(risk * 100).toFixed(0)}%</strong></div>
+              ${props.ward ? `<div style="color:#64748b;margin-top:2px">${props.ward}</div>` : ''}
             </div>
-            <div style="margin-top: 4px; font-size: 11px; color: #475569;">
-              <strong>Hazard:</strong> ${p.reason || 'Waterlogging & Feeder Cable Hazard'}
-            </div>
-            <div style="margin-top: 4px; font-size: 10.5px; background: #fee2e2; padding: 2px 6px; border-radius: 4px; color: #991b1b; display: inline-block;">
-              Severity: ${p.severity?.toUpperCase() || 'CRITICAL'} • Detour Active
-            </div>
-          </div>
-        `)
-        .addTo(map);
-    });
-
-    map.on('mousemove', 'closed-roads-line', () => { map.getCanvas().style.cursor = 'pointer'; });
-    map.on('mouseleave', 'closed-roads-line', () => { map.getCanvas().style.cursor = ''; });
-
-    // ── Interaction: Hospital Icon Click ──
-    map.on('click', 'hospital-points-circle', (e: any) => {
-      if (!e.features || !e.features[0]) return;
-      const feat = e.features[0];
-      const p = feat.properties;
-      const coords = feat.geometry.coordinates;
-
-      if (popupRef.current) popupRef.current.remove();
-      popupRef.current = new maplibregl.Popup({ closeButton: true, offset: 16 })
-        .setLngLat(coords)
-        .setHTML(`
-          <div style="font-family: sans-serif; padding: 4px; font-size: 12px; color: #1e293b;">
-            <div style="font-weight: 700; color: #0284c7; display: flex; align-items: center; gap: 4px;">
-              <span>🏥</span> ${p.name || 'Medical Facility'}
-            </div>
-            <div style="margin-top: 4px; font-size: 11px; color: #475569;">
-              <strong>Facility:</strong> Emergency Trauma & Inpatient Center
-            </div>
-            <div style="margin-top: 4px; font-size: 10.5px; background: #e0f2fe; padding: 2px 6px; border-radius: 4px; color: #0369a1; display: inline-block;">
-              Catchment Status: High Priority Access
-            </div>
-          </div>
-        `)
-        .addTo(map);
-    });
-
-    map.on('mousemove', 'hospital-points-circle', () => { map.getCanvas().style.cursor = 'pointer'; });
-    map.on('mouseleave', 'hospital-points-circle', () => { map.getCanvas().style.cursor = ''; });
-
-    // Handle container resize dynamically so map never collapses
-    const resizeObserver = new ResizeObserver(() => {
-      if (mapRef.current) {
-        mapRef.current.resize();
+          `)
+          .addTo(map);
       }
     });
 
-    if (containerRef.current) {
-      resizeObserver.observe(containerRef.current);
-    }
+    map.on('mousemove', 'h3-cells-fill', () => { 
+      map.getCanvas().style.cursor = 'pointer'; 
+    });
+    map.on('mouseleave', 'h3-cells-fill', () => { 
+      map.getCanvas().style.cursor = ''; 
+    });
 
-    const t1 = setTimeout(() => { if (mapRef.current) mapRef.current.resize(); }, 150);
-    const t2 = setTimeout(() => { if (mapRef.current) mapRef.current.resize(); }, 500);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      resizeObserver.disconnect();
-      if (popupRef.current) popupRef.current.remove();
-      map.remove();
-      mapRef.current = null;
+    return () => { 
+      ro.disconnect();
+      map.remove(); 
+      mapRef.current = null; 
     };
+  }, []);
+
+  // Update style when theme changes
+  useEffect(() => {
+    if (!mapRef.current) return;
+    mapRef.current.setStyle(getRasterMapStyle(theme));
   }, [theme]);
 
-  // Update layer visibility when activeLayer changes
+  // ── Apply layer coloring when activeLayer changes ──
   useEffect(() => {
+    if (!mapRef.current) return;
     const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
-
-    // Road layer highlighting
-    if (map.getLayer('closed-roads-line')) {
-      const roadOpacity = activeLayer === 'roads' ? 1.0 : 0.75;
-      const roadWidth = activeLayer === 'roads' ? 5.0 : 3.5;
-      map.setPaintProperty('closed-roads-line', 'line-opacity', roadOpacity);
-      map.setPaintProperty('closed-roads-line', 'line-width', roadWidth);
-    }
-
-    // Hospital layer highlighting
-    if (map.getLayer('hospital-points-circle')) {
-      const hospRadius = activeLayer === 'hospitals' ? 12 : 9;
-      map.setPaintProperty('hospital-points-circle', 'circle-radius', hospRadius);
+    
+    // If map is loaded and layers exist, apply immediately
+    if (map.isStyleLoaded() && map.getLayer('h3-cells-fill')) {
+      applyLayerStyle(map, activeLayer);
+    } else {
+      // Otherwise wait for style to load
+      const handler = () => {
+        if (map.getLayer('h3-cells-fill')) {
+          applyLayerStyle(map, activeLayer);
+        }
+      };
+      map.once('idle', handler);
     }
   }, [activeLayer]);
 
-  // ── Accessibility: Keyboard Navigation Handler ──
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>) => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    const PAN_OFFSET = 90;
-    switch (e.key) {
-      case 'ArrowUp':
-        e.preventDefault();
-        map.panBy([0, -PAN_OFFSET]);
-        break;
-      case 'ArrowDown':
-        e.preventDefault();
-        map.panBy([0, PAN_OFFSET]);
-        break;
-      case 'ArrowLeft':
-        e.preventDefault();
-        map.panBy([-PAN_OFFSET, 0]);
-        break;
-      case 'ArrowRight':
-        e.preventDefault();
-        map.panBy([PAN_OFFSET, 0]);
-        break;
-      case '+':
-      case '=':
-        e.preventDefault();
-        map.zoomIn();
-        break;
-      case '-':
-      case '_':
-        e.preventDefault();
-        map.zoomOut();
-        break;
-      case '0':
-        e.preventDefault();
-        map.flyTo({ center: NAGPUR_CENTER, zoom: 11.2 });
-        break;
-      case '?':
-        setShowA11yHelp((prev) => !prev);
-        break;
-    }
-  }, []);
-
-  const layers = [
-    { key: 'risk', label: 'Risk' },
-    { key: 'roads', label: 'Roads' },
-    { key: 'hospitals', label: 'Hospitals' },
-    { key: 'feed_coverage', label: 'Feed' }
+  const layers: { key: LayerKey; label: string; icon: string }[] = [
+    { key: 'risk', label: 'Risk', icon: '🔴' }, 
+    { key: 'roads', label: 'Roads', icon: '🛣️' }, 
+    { key: 'hospitals', label: 'Hospitals', icon: '🏥' }, 
+    { key: 'feed_coverage', label: 'Feed', icon: '📡' }
   ];
 
-  const legendItems = [
-    { label: 'High Risk', color: '#DC3545' },
-    { label: 'Watch', color: '#FFC107' },
-    { label: 'Low Risk', color: '#198754' },
-    { label: 'Unknown', color: '#6C757D' }
-  ];
-
+  const currentConfig = LAYER_CONFIGS[activeLayer];
+  
   return (
-    <div
-      tabIndex={0}
-      role="region"
-      aria-label="Interactive Nagpur Geospatial Risk Map. Use arrow keys to pan, plus or minus to zoom."
-      onKeyDown={handleKeyDown}
-      className="relative focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg overflow-hidden"
-      style={{
-        width: '100%',
-        height: '100%',
-        minHeight: '400px',
-        backgroundColor: '#0f172a',
-        position: 'relative'
-      }}
-    >
-      {/* Strict 100% full-height MapLibre container with minHeight 400px */}
-      <div
-        ref={containerRef}
-        style={{
-          width: '100%',
-          height: '100%',
-          minHeight: '400px',
-          backgroundColor: '#0f172a'
+    <div style={{ position: 'relative', width: '100%', height: '100%', backgroundColor: '#e2e8f0' }}>
+      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+
+      {/* Layer selector on top left (away from nav controls) */}
+      <div 
+        style={{ 
+          position: 'absolute', 
+          top: 10, 
+          left: 10, 
+          padding: '3px 4px', 
+          display: 'flex', 
+          gap: 3, 
+          zIndex: 10,
+          borderRadius: '8px',
+          border: '1px solid rgba(0,0,0,0.12)',
+          backgroundColor: 'rgba(255,255,255,0.95)',
+          backdropFilter: 'blur(8px)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
         }}
-      />
-
-      {/* Top Left: Dynamic Zoom & Resolution Switch Pill */}
-      <div className="panel-surface absolute top-3 left-3 px-3 py-1.5 flex items-center gap-2 z-10 text-xs backdrop-blur-md">
-        <span className="w-2 h-2 rounded-full bg-emerald-500" />
-        <span className="font-mono font-medium text-[var(--color-text)]">
-          Zoom {currentZoom}
-        </span>
-        <span className="text-[var(--color-border)]">|</span>
-        <span
-          className={`font-semibold px-1.5 py-0.5 rounded text-[10px] ${
-            activeResolution === 'res9'
-              ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-              : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-          }`}
-        >
-          {activeResolution === 'res9' ? 'H3 Res 9 (Micro)' : 'H3 Res 8 (Macro)'}
-        </span>
-      </div>
-
-      {/* Top Right: Layer Switcher */}
-      <div className="panel-surface absolute top-3 right-12 p-1.5 flex gap-1 z-10 backdrop-blur-md">
+      >
         {layers.map((l) => (
-          <button
-            key={l.key}
+          <button 
+            key={l.key} 
             type="button"
-            onClick={() => setActiveLayer(l.key as any)}
-            className="text-xs px-2.5 py-1 rounded transition-colors"
-            style={{
-              background: activeLayer === l.key ? 'var(--color-raised)' : 'transparent',
-              color: activeLayer === l.key ? 'var(--color-text)' : 'var(--color-muted)',
-              border: activeLayer === l.key ? '1px solid var(--color-border)' : '1px solid transparent',
-              fontWeight: activeLayer === l.key ? 600 : 400
+            onClick={() => setActiveLayer(l.key)} 
+            style={{ 
+              background: activeLayer === l.key ? '#1d4ed8' : 'transparent', 
+              border: 'none',
+              borderRadius: '5px', 
+              padding: '5px 10px', 
+              fontSize: '11px',
+              fontWeight: 600,
+              color: activeLayer === l.key ? '#fff' : '#374151',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
             }}
           >
+            <span style={{ fontSize: '10px' }}>{l.icon}</span>
             {l.label}
           </button>
         ))}
       </div>
 
-      {/* Bottom Left: Comprehensive Map Legend (H3, Closed Roads, Hospitals) */}
-      <div className="panel-surface absolute bottom-3 left-3 p-3 z-10 max-w-[220px] backdrop-blur-md">
-        <div className="text-[11px] font-semibold text-[var(--color-muted)] uppercase tracking-wider mb-2">
-          Spatial Overlays
+      {/* Dynamic Legend based on active layer */}
+      <div 
+        style={{ 
+          position: 'absolute', 
+          bottom: 10, 
+          left: 10, 
+          padding: '8px 10px', 
+          zIndex: 10,
+          borderRadius: '8px',
+          border: '1px solid rgba(0,0,0,0.1)',
+          backgroundColor: 'rgba(255,255,255,0.95)',
+          backdropFilter: 'blur(8px)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          minWidth: '110px',
+        }}
+      >
+        <div style={{ marginBottom: 4, fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.04em' }}>
+          {currentConfig.legendTitle}
         </div>
-
-        {/* Risk Tiers */}
-        <div className="space-y-1 mb-2.5">
-          {legendItems.map((item) => (
-            <div key={item.label} className="flex items-center gap-2">
-              <span
-                className="w-3.5 h-3.5 rounded-sm border border-[var(--color-border)]"
-                style={{ backgroundColor: item.color }}
-              />
-              <span className="text-xs text-[var(--color-secondary)]">{item.label}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Closed Roads Indicator */}
-        <div className="flex items-center gap-2 pt-2 border-t border-[var(--color-border)] mb-1.5">
-          <span className="inline-block w-4 h-0 border-t-2 border-dashed border-rose-500" />
-          <span className="text-xs font-medium text-rose-500">Closed Road (R-14)</span>
-        </div>
-
-        {/* Hospital Indicator */}
-        <div className="flex items-center gap-2 mb-1.5">
-          <span className="w-3.5 h-3.5 rounded-full bg-rose-500 border border-white text-white text-[9px] flex items-center justify-center font-bold">
-            +
-          </span>
-          <span className="text-xs font-medium text-[var(--color-text)]">Hospital Catchment</span>
-        </div>
-
-        {/* Ward Boundary Indicator */}
-        <div className="flex items-center gap-2">
-          <span className="inline-block w-4 h-0 border-t-2 border-dashed border-sky-400" />
-          <span className="text-xs text-sky-400 font-medium">Ward Boundary</span>
-        </div>
-
-        {/* Keyboard Helper Toggle */}
-        <button
-          type="button"
-          onClick={() => setShowA11yHelp((p) => !p)}
-          className="mt-2.5 pt-2 border-t border-[var(--color-border)] w-full text-[10px] text-blue-400 hover:text-blue-300 flex items-center justify-between"
-          aria-expanded={showA11yHelp}
-        >
-          <span>⌨️ Keyboard Nav Help</span>
-          <span>{showA11yHelp ? '▲' : '▼'}</span>
-        </button>
-
-        {showA11yHelp && (
-          <div className="mt-2 text-[10px] text-[var(--color-muted)] space-y-1 bg-[var(--color-raised)] p-2 rounded border border-[var(--color-border)]">
-            <div><strong className="text-[var(--color-text)]">&uarr;&darr;&larr;&rarr;:</strong> Pan Map</div>
-            <div><strong className="text-[var(--color-text)]">+/-:</strong> Zoom In / Out</div>
-            <div><strong className="text-[var(--color-text)]">0:</strong> Recenter Nagpur</div>
+        {currentConfig.legend.map((item) => (
+          <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+            <span style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: item.color, flexShrink: 0 }} />
+            <span style={{ fontSize: '10.5px', color: '#475569' }}>{item.label}</span>
           </div>
-        )}
+        ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, paddingTop: 4, borderTop: '1px solid rgba(0,0,0,0.08)' }}>
+          <span style={{ display: 'inline-block', width: 10, height: 0, borderTop: '2px dashed #0284c7' }} />
+          <span style={{ fontSize: '10.5px', color: '#0284c7', fontWeight: 600 }}>Ward Overlay</span>
+        </div>
       </div>
     </div>
   );

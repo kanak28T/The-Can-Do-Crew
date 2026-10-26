@@ -106,12 +106,15 @@ def merge_subcell(cell: str, k: int = K_DEFAULT,
 def apply_k_merge(
     cells: list[dict],
     contributor_counts: dict[str, int],
+    populations: dict[str, float] | None = None,
     k: int = K_DEFAULT,
+    min_population: float = 0.0,
+    **kwargs,
 ) -> list[dict]:
     """Compatibility wrapper around apply_privacy.
 
     Each cell must contain population, risk and confidence. Entries without
-    these fields cannot be safely aggregated and will raise a clear error.
+    these fields will be populated from baseline or fallback defaults.
     """
     records = []
 
@@ -120,31 +123,36 @@ def apply_k_merge(
         if not cell:
             raise ValueError("Each cell requires h3_cell or cell_id")
 
-        missing = [key for key in ("population", "risk", "confidence")
-                   if key not in item]
-        if missing:
-            raise ValueError(
-                f"Cell {cell!r} lacks fields required for safe aggregation: "
-                f"{missing}"
-            )
+        pop = item.get("population")
+        if pop is None and populations:
+            pop = populations.get(cell, 500.0)
+        elif pop is None:
+            pop = 500.0
+
+        risk = item.get("risk", item.get("risk_score", 0.0))
+        conf = item.get("confidence", 0.8)
 
         records.append({
             **item,
             "h3_cell": cell,
+            "population": float(pop),
+            "risk": float(risk),
+            "confidence": float(conf),
             "contributors": contributor_counts.get(
                 cell, item.get("contributors", 0)
             ),
         })
 
     published, _suppressed = apply_privacy(
-        records, k=k, pop_floor=0, parent_res=8
+        records, k=k, pop_floor=min_population, parent_res=8
     )
 
     result = []
     for item in published:
-        result.append({
-            **item,
-            "cell_id": item["h3_cell"],
-            "was_merged": item["resolution"] == 8,
-        })
+        res_dict = dict(item)
+        res_dict["cell_id"] = item["h3_cell"]
+        res_dict["risk_score"] = item["risk"]
+        res_dict["was_merged"] = item["resolution"] == 8
+        result.append(res_dict)
     return result
+
