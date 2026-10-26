@@ -1,0 +1,64 @@
+﻿{
+  "scenario_id": "SCN-I-001",
+  "family": "I",
+  "name": "River overflow and bridge closure",
+  "description": "Heavy rainfall causes river overflow, followed by flooding and closure of a nearby road bridge.",
+  "seed": 909,
+  "time_compression_factor": 60,
+  "events": [
+    {
+      "offset": "T+0m",
+      "domain": "water",
+      "event_type": "river_level_rising",
+      "entity_id": "river_sector_R1",
+      "h3_cell": "89609610143ffff",
+      "severity": 0.55,
+      "source_type": "sensor",
+      "raw_text": "River gauge reports rapidly rising water level"
+    },
+    {
+      "offset": "T+15m",
+      "domain": "water",
+      "event_type": "river_overflow",
+      "entity_id": "river_sector_R1",
+      "h3_cell": "89609610147ffff",
+      "severity": 0.82,
+      "source_type": "official",
+      "raw_text": "River has overflowed its banks near the crossing"
+    },
+    {
+      "offset": "T+30m",
+      "domain": "road",
+      "event_type": "bridge_closure",
+      "entity_id": "bridge_R1",
+      "h3_cell": "89609610143ffff",
+      "severity": 0.95,
+      "source_type": "official",
+      "raw_text": "Bridge closed because of floodwater"
+    },
+    {
+      "offset": "T+45m",
+      "domain": "road",
+      "event_type": "road_closure",
+      "entity_id": "road_R1",
+      "h3_cell": "89609610173ffff",
+      "severity": 0.88,
+      "source_type": "crowdsourced",
+      "raw_text": "Floodwater blocks the approach road"
+    }
+  ],
+  "decoys": [
+    {
+      "offset": "T+20m",
+      "domain": "power",
+      "event_type": "voltage_drop",
+      "entity_id": "feeder_F07",
+      "h3_cell": "89609610173ffff",
+      "severity": 0.25,
+      "source_type": "sensor",
+      "raw_text": "Minor voltage fluctuation in nearby feeder"
+    }
+  ],
+  "feed_loss": [],
+  "contradictions": []
+}

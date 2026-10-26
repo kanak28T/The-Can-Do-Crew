@@ -10,22 +10,7 @@ with open("data/nagpur_h3_res9.geojson") as f:
 ALL_CELLS = [feat["properties"]["cell"] for feat in grid["features"]]
 
 
-def _event(domain, event_type, entity_id, h3_cell, severity, source_type, scenario_tag=None):
-    now = datetime.now(timezone.utc)
-    return {
-        "event_id": str(uuid.uuid4()),
-        "domain": domain,
-        "event_type": event_type,
-        "entity_id": entity_id,
-        "cell": h3_cell,
-        "severity": round(severity, 3),
-        "source_type": source_type,
-        "source_reliability": {"official": 0.9, "sensor": 0.7, "crowdsourced": 0.5, "anonymous": 0.3}[source_type],
-        "event_timestamp": now.isoformat(),
-        "ingestion_timestamp": now.isoformat(),
-        "parse_confidence": 1.0,
-        "scenario_tag": scenario_tag,
-    }
+from sim._sim_base import _make_event as _event
 
 
 def road_closed(cell: str = None, reason: str = "construction", severity: float = None, scenario_tag=None) -> List[dict]:
@@ -67,11 +52,11 @@ def road_cleared(cell: str, scenario_tag=None) -> List[dict]:
 
 
 def random_stream(n: int = 5, seed: int = None) -> List[dict]:
-    if seed: random.seed(seed)
+    rng = random.Random(seed) if seed is not None else random
     events = []
     for _ in range(n):
-        cell = random.choice(ALL_CELLS)
-        event_type = random.choice(["closed", "accident", "flooding", "congestion"])
+        cell = rng.choice(ALL_CELLS)
+        event_type = rng.choice(["closed", "accident", "flooding", "congestion"])
         if event_type == "closed":
             events.extend(road_closed(cell))
         elif event_type == "accident":

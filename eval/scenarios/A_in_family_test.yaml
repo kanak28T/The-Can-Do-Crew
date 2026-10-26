@@ -1,0 +1,44 @@
+{
+  "scenario_id": "SCN-A-002",
+  "family": "A",
+  "name": "Road and transit in-family test",
+  "description": "In-family evaluation replay with a fixed seed.",
+  "seed": 1200,
+  "time_compression_factor": 60,
+  "events": [
+    {
+      "offset": "T+0s",
+      "domain": "transit",
+      "event_type": "road_closure",
+      "entity_id": "road_R22",
+      "h3_cell": "89609617513ffff",
+      "severity": 0.85,
+      "source_type": "official",
+      "raw_text": "Road closed"
+    },
+    {
+      "offset": "T+25m",
+      "domain": "transit",
+      "event_type": "transit_suspension",
+      "entity_id": "route_7",
+      "h3_cell": "896096175c7ffff",
+      "severity": 0.8,
+      "source_type": "official",
+      "raw_text": "Route suspended"
+    }
+  ],
+  "decoys": [
+    {
+      "offset": "T+15m",
+      "domain": "transit",
+      "event_type": "traffic_slowdown",
+      "entity_id": "road_TEST",
+      "h3_cell": "89609617537ffff",
+      "severity": 0.2,
+      "source_type": "sensor",
+      "raw_text": null
+    }
+  ],
+  "feed_loss": [],
+  "contradictions": []
+}

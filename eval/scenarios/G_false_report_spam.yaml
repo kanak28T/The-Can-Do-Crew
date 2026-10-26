@@ -1,0 +1,71 @@
+{
+  "scenario_id": "SCN-G-001",
+  "family": "G",
+  "name": "False-report spam in a quiet area",
+  "description": "Repeated low-credibility reports target a quiet area; the system should avoid a false high-risk zone.",
+  "seed": 707,
+  "time_compression_factor": 60,
+  "events": [
+    {
+      "offset": "T+0s",
+      "domain": "road",
+      "event_type": "incident_report",
+      "entity_id": "report_spam_1",
+      "h3_cell": "89609612887ffff",
+      "severity": 0.15,
+      "source_type": "crowdsourced",
+      "raw_text": "Urgent incident reported"
+    },
+    {
+      "offset": "T+5m",
+      "domain": "road",
+      "event_type": "incident_report",
+      "entity_id": "report_spam_2",
+      "h3_cell": "89609612883ffff",
+      "severity": 0.15,
+      "source_type": "crowdsourced",
+      "raw_text": "Another urgent incident"
+    },
+    {
+      "offset": "T+10m",
+      "domain": "road",
+      "event_type": "incident_report",
+      "entity_id": "report_spam_3",
+      "h3_cell": "8960961288fffff",
+      "severity": 0.1,
+      "source_type": "crowdsourced",
+      "raw_text": "Repeated unverified report"
+    },
+    {
+      "offset": "T+15m",
+      "domain": "road",
+      "event_type": "incident_report",
+      "entity_id": "report_spam_4",
+      "h3_cell": "896096128bbffff",
+      "severity": 0.1,
+      "source_type": "crowdsourced",
+      "raw_text": "Repeated unverified report"
+    }
+  ],
+  "decoys": [
+    {
+      "offset": "T+30m",
+      "domain": "transit",
+      "event_type": "traffic_slowdown",
+      "entity_id": "road_R76",
+      "h3_cell": "896096128abffff",
+      "severity": 0.2,
+      "source_type": "sensor",
+      "raw_text": null
+    }
+  ],
+  "feed_loss": [
+    {
+      "offset": "T+30m",
+      "pattern": "random_streams",
+      "domain": "road",
+      "fraction": 0.1
+    }
+  ],
+  "contradictions": []
+}

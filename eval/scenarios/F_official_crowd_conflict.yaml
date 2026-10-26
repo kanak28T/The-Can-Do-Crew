@@ -1,0 +1,87 @@
+{
+  "scenario_id": "SCN-F-001",
+  "family": "F",
+  "name": "Official and crowd reports conflict",
+  "description": "Official reports and crowdsourced observations disagree; evaluate robustness under varied feed loss.",
+  "seed": 606,
+  "time_compression_factor": 60,
+  "events": [
+    {
+      "offset": "T+0s",
+      "domain": "transit",
+      "event_type": "road_closure",
+      "entity_id": "road_R44",
+      "h3_cell": "896096124b7ffff",
+      "severity": 0.85,
+      "source_type": "official",
+      "raw_text": "Road reported closed"
+    },
+    {
+      "offset": "T+15m",
+      "domain": "transit",
+      "event_type": "road_open",
+      "entity_id": "road_R44",
+      "h3_cell": "896096124b7ffff",
+      "severity": 0.2,
+      "source_type": "crowdsourced",
+      "raw_text": "Road appears open"
+    },
+    {
+      "offset": "T+35m",
+      "domain": "transit",
+      "event_type": "traffic_slowdown",
+      "entity_id": "road_R44",
+      "h3_cell": "896096124b3ffff",
+      "severity": 0.6,
+      "source_type": "crowdsourced",
+      "raw_text": "Traffic still blocked"
+    }
+  ],
+  "decoys": [
+    {
+      "offset": "T+20m",
+      "domain": "power",
+      "event_type": "voltage_drop",
+      "entity_id": "feeder_F25",
+      "h3_cell": "89609612517ffff",
+      "severity": 0.25,
+      "source_type": "sensor",
+      "raw_text": null
+    }
+  ],
+  "feed_loss": [
+    {
+      "offset": "T+30m",
+      "pattern": "random_streams",
+      "domain": "transit",
+      "fraction": 0.2
+    },
+    {
+      "offset": "T+1h",
+      "pattern": "random_streams",
+      "domain": "transit",
+      "fraction": 0.4
+    },
+    {
+      "offset": "T+90m",
+      "pattern": "random_streams",
+      "domain": "transit",
+      "fraction": 0.6
+    }
+  ],
+  "contradictions": [
+    {
+      "offset": "T+2h",
+      "conflicting_event": {
+        "offset": "T+2h",
+        "domain": "transit",
+        "event_type": "road_open",
+        "entity_id": "road_R14",
+        "h3_cell": "896096124b7ffff",
+        "severity": 0.1,
+        "source_type": "official",
+        "raw_text": null
+      }
+    }
+  ]
+}

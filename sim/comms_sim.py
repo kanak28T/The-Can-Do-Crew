@@ -8,22 +8,7 @@ with open("data/mapping_tables/tower_cells.json") as f:
 TOWERS = [k for k in TOWER_CELLS if not k.startswith("_")]
 
 
-def _event(domain, event_type, entity_id, h3_cell, severity, source_type, scenario_tag=None):
-    now = datetime.now(timezone.utc)
-    return {
-        "event_id": str(uuid.uuid4()),
-        "domain": domain,
-        "event_type": event_type,
-        "entity_id": entity_id,
-        "cell": h3_cell,
-        "severity": round(severity, 3),
-        "source_type": source_type,
-        "source_reliability": {"official": 0.9, "sensor": 0.7, "crowdsourced": 0.5, "anonymous": 0.3}[source_type],
-        "event_timestamp": now.isoformat(),
-        "ingestion_timestamp": now.isoformat(),
-        "parse_confidence": 1.0,
-        "scenario_tag": scenario_tag,
-    }
+from sim._sim_base import _make_event as _event
 
 
 def tower_down(tower_id: str = None, scenario_tag=None) -> List[dict]:
@@ -64,11 +49,11 @@ def service_restored(tower_id: str, scenario_tag=None) -> List[dict]:
 
 
 def random_stream(n: int = 5, seed: int = None) -> List[dict]:
-    if seed: random.seed(seed)
+    rng = random.Random(seed) if seed is not None else random
     events = []
     for _ in range(n):
-        tower = random.choice(TOWERS)
-        event_type = random.choice(["tower_down", "signal_degraded", "network_congestion", "maintenance"])
+        tower = rng.choice(TOWERS)
+        event_type = rng.choice(["tower_down", "signal_degraded", "network_congestion", "maintenance"])
         if event_type == "tower_down":
             events.extend(tower_down(tower))
         elif event_type == "signal_degraded":

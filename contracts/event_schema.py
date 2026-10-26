@@ -103,7 +103,12 @@ class CanonicalEvent(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def reject_forbidden_fields(cls, data: dict) -> dict:
+    def normalise_cell_field(cls, data: dict) -> dict:
+        """
+        Accept 'cell' as an alias for 'h3_cell' (backward-compat with all
+        simulators that use the shorter name).  If both are present, 'h3_cell'
+        wins.  Also enforces PII field rejection in the same pass.
+        """
         if not isinstance(data, dict):
             return data
         found = _FORBIDDEN_FIELDS.intersection(data.keys())
@@ -111,6 +116,9 @@ class CanonicalEvent(BaseModel):
             raise ValueError(
                 f"Forbidden PII field(s) in request: {sorted(found)}"
             )
+        # Map "cell" → "h3_cell" when the canonical name is absent
+        if "cell" in data and "h3_cell" not in data:
+            data = {**data, "h3_cell": data.pop("cell")}
         return data
 
     @field_validator("source_type", mode="before")

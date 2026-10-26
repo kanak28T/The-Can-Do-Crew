@@ -1,0 +1,61 @@
+{
+  "scenario_id": "SCN-H-001",
+  "family": "H",
+  "name": "Healthcare desert and warning dead zone",
+  "description": "Limited healthcare access overlaps a communications dead zone that prevents warnings reaching residents.",
+  "seed": 808,
+  "time_compression_factor": 60,
+  "events": [
+    {
+      "offset": "T+0s",
+      "domain": "health",
+      "event_type": "facility_unavailable",
+      "entity_id": "clinic_H02",
+      "h3_cell": "89609612a8fffff",
+      "severity": 0.8,
+      "source_type": "official",
+      "raw_text": "Local clinic unavailable"
+    },
+    {
+      "offset": "T+20m",
+      "domain": "comms",
+      "event_type": "network_outage",
+      "entity_id": "tower_H03",
+      "h3_cell": "89609612a8bffff",
+      "severity": 0.85,
+      "source_type": "sensor",
+      "raw_text": "Warning coverage lost"
+    },
+    {
+      "offset": "T+40m",
+      "domain": "health",
+      "event_type": "access_disruption",
+      "entity_id": "hospital_H01",
+      "h3_cell": "89609612a13ffff",
+      "severity": 0.8,
+      "source_type": "crowdsourced",
+      "raw_text": "Long travel time to care"
+    }
+  ],
+  "decoys": [
+    {
+      "offset": "T+15m",
+      "domain": "power",
+      "event_type": "voltage_drop",
+      "entity_id": "feeder_F33",
+      "h3_cell": "89609612ab3ffff",
+      "severity": 0.2,
+      "source_type": "sensor",
+      "raw_text": null
+    }
+  ],
+  "feed_loss": [
+    {
+      "offset": "T+1h",
+      "pattern": "whole_domain",
+      "domain": "comms",
+      "fraction": 0.3
+    }
+  ],
+  "contradictions": []
+}

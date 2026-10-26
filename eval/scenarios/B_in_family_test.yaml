@@ -1,0 +1,44 @@
+{
+  "scenario_id": "SCN-B-002",
+  "family": "B",
+  "name": "Power and water in-family test",
+  "description": "In-family evaluation replay with a fixed seed.",
+  "seed": 1300,
+  "time_compression_factor": 60,
+  "events": [
+    {
+      "offset": "T+0s",
+      "domain": "power",
+      "event_type": "feeder_failure",
+      "entity_id": "feeder_F18",
+      "h3_cell": "89609688b33ffff",
+      "severity": 0.85,
+      "source_type": "sensor",
+      "raw_text": "Feeder fault"
+    },
+    {
+      "offset": "T+25m",
+      "domain": "water",
+      "event_type": "pump_failure",
+      "entity_id": "pump_P08",
+      "h3_cell": "89609688b07ffff",
+      "severity": 0.8,
+      "source_type": "sensor",
+      "raw_text": "Pump stopped"
+    }
+  ],
+  "decoys": [
+    {
+      "offset": "T+15m",
+      "domain": "transit",
+      "event_type": "traffic_slowdown",
+      "entity_id": "road_TEST",
+      "h3_cell": "89609688b7bffff",
+      "severity": 0.2,
+      "source_type": "sensor",
+      "raw_text": null
+    }
+  ],
+  "feed_loss": [],
+  "contradictions": []
+}

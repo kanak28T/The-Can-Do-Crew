@@ -1,0 +1,27 @@
+{
+  "scenario_id": "SCN-C-002",
+  "ground_truth": {
+    "polygon_h3_cells": [
+      "8960968ce53ffff",
+      "8960968c327ffff",
+      "8960968ce5bffff",
+      "8960968ce43ffff"
+    ],
+    "zone_label": "High",
+    "evaluation_window": {
+      "start_offset": "T+1h",
+      "end_offset": "T+4h"
+    },
+    "notes": "Synthetic evaluation zone selected from valid Nagpur grid cells; not real-world ground truth."
+  },
+  "scoring": {
+    "primary_metric": "iou",
+    "secondary_metrics": [
+      "precision",
+      "recall",
+      "zone_hit_rate",
+      "detection_latency_seconds"
+    ],
+    "iou_threshold": 0.5
+  }
+}

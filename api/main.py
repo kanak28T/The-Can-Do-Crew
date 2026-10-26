@@ -239,6 +239,8 @@ async def get_zones(risk_min: float = 0.65):
             raw_zones.append({
                 "cell_id":    cell.h3_cell,
                 "risk_score": cell.risk,
+                "risk":       cell.risk,
+                "population": baseline.get('population', 0),
                 "label":      cell.risk_label,
                 "interval":   list(cell.risk_interval),
                 "confidence": cell.confidence,

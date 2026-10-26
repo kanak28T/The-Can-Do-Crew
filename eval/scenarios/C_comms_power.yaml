@@ -1,0 +1,61 @@
+{
+  "scenario_id": "SCN-C-001",
+  "family": "C",
+  "name": "Communication dead zone and power stress",
+  "description": "Communication coverage drops while local power instability affects the same area.",
+  "seed": 303,
+  "time_compression_factor": 60,
+  "events": [
+    {
+      "offset": "T+0s",
+      "domain": "comms",
+      "event_type": "network_outage",
+      "entity_id": "tower_C04",
+      "h3_cell": "89609610cabffff",
+      "severity": 0.85,
+      "source_type": "sensor",
+      "raw_text": "Network unavailable"
+    },
+    {
+      "offset": "T+15m",
+      "domain": "power",
+      "event_type": "voltage_drop",
+      "entity_id": "feeder_F04",
+      "h3_cell": "89609610c17ffff",
+      "severity": 0.75,
+      "source_type": "sensor",
+      "raw_text": "Voltage below normal"
+    },
+    {
+      "offset": "T+35m",
+      "domain": "comms",
+      "event_type": "service_degradation",
+      "entity_id": "tower_C04",
+      "h3_cell": "89609610c07ffff",
+      "severity": 0.8,
+      "source_type": "crowdsourced",
+      "raw_text": "Calls and data failing"
+    }
+  ],
+  "decoys": [
+    {
+      "offset": "T+20m",
+      "domain": "transit",
+      "event_type": "road_closure",
+      "entity_id": "road_R91",
+      "h3_cell": "89609610ccfffff",
+      "severity": 0.2,
+      "source_type": "official",
+      "raw_text": null
+    }
+  ],
+  "feed_loss": [
+    {
+      "offset": "T+45m",
+      "pattern": "whole_domain",
+      "domain": "comms",
+      "fraction": 0.4
+    }
+  ],
+  "contradictions": []
+}

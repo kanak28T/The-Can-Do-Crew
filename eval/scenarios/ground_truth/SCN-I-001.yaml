@@ -1,0 +1,16 @@
+﻿{
+  "scenario_id": "SCN-I-001",
+  "ground_truth": {
+    "polygon_h3_cells": [
+      "89609610143ffff",
+      "89609610147ffff",
+      "89609610173ffff"
+    ],
+    "zone_label": "High"
+  },
+  "evaluation_window": {
+    "start": "T+15m",
+    "end": "T+4h"
+  },
+  "notes": "Expected high-risk area around the overflowing river, bridge closure, and flooded road approach. Illustrative scenario labels; validate against local flood and road data before formal evaluation."
+}
