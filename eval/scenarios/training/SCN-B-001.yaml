@@ -1,0 +1,20 @@
+scenario_id: SCN-B-001
+family: B
+name: Power outage cascades to water pump failure
+description: See scenario_format.yaml for field definitions.
+seed: 101
+time_compression_factor: 60
+ground_truth:
+  polygon_h3_cells:
+    - 8960968dd53ffff
+    - 8960968dc27ffff
+    - 8960968dd5bffff
+    - 89609688b63ffff
+    - 89609688b7bffff
+    - 89609688b6bffff
+  severity: High
+  notes: Authored by B2 Sanvi. Real NMC H3 res-9 cells from nagpur_h3_res9.geojson.
+events: []
+decoys: []
+feed_loss: []
+contradictions: []

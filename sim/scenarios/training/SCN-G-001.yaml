@@ -1,0 +1,53 @@
+scenario_id: "SCN-G-001"
+family: "G"
+name: "False report spam attack"
+description: 30 crowdsourced false explosion reports at T+0. Source weighting should suppress risk. Official sensor confirms nothing at T+30m.
+seed: 55
+time_compression_factor: 60
+ground_truth:
+  polygon_h3_cells:
+    - "89609612863ffff"
+  severity: "Low"
+  notes: "Spam zone. Risk must NOT reach High. Tests source reliability weighting."
+events:
+  - offset: "T+0s"
+    domain: "road"
+    event_type: "accident"
+    entity_id: "crowd_spam_01"
+    h3_cell: "89609612863ffff"
+    severity: 0.9
+    source_type: "crowdsourced"
+    raw_text: "Explosion heard near junction"
+  - offset: "T+2m"
+    domain: "road"
+    event_type: "accident"
+    entity_id: "crowd_spam_02"
+    h3_cell: "89609612863ffff"
+    severity: 0.9
+    source_type: "crowdsourced"
+    raw_text: "Big fire near the main road"
+  - offset: "T+5m"
+    domain: "road"
+    event_type: "accident"
+    entity_id: "crowd_spam_03"
+    h3_cell: "89609612863ffff"
+    severity: 0.9
+    source_type: "crowdsourced"
+    raw_text: "Road completely blocked emergency"
+  - offset: "T+30m"
+    domain: "road"
+    event_type: "road_open"
+    entity_id: "road_sensor_01"
+    h3_cell: "89609612863ffff"
+    severity: 0.0
+    source_type: "official"
+    raw_text: null
+decoys:
+  - offset: "T+10m"
+    domain: "water"
+    event_type: "pressure_drop"
+    entity_id: "pump_P04"
+    h3_cell: "89609612cafffff"
+    severity: 0.2
+    source_type: "sensor"
+    raw_text: null

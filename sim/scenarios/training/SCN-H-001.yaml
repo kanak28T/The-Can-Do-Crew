@@ -1,0 +1,47 @@
+scenario_id: "SCN-H-001"
+family: "H"
+name: "Healthcare desert - all hospitals at capacity"
+description: gmch and mayo both reach capacity_critical. Route 1 suspended. Full healthcare isolation for affected cells.
+seed: 77
+time_compression_factor: 60
+ground_truth:
+  polygon_h3_cells:
+    - "89609612d47ffff"
+    - "89609612d6fffff"
+    - "89609612517ffff"
+    - "8960961256bffff"
+  severity: "High"
+  notes: "Hospital cells and route_1 access cells. Full care isolation zone."
+events:
+  - offset: "T+0s"
+    domain: "health"
+    event_type: "capacity_critical"
+    entity_id: "gmch_nagpur"
+    h3_cell: "89609612d6fffff"
+    severity: 0.95
+    source_type: "official"
+    raw_text: null
+  - offset: "T+15m"
+    domain: "health"
+    event_type: "capacity_critical"
+    entity_id: "mayo_hospital"
+    h3_cell: "89609612d47ffff"
+    severity: 0.90
+    source_type: "official"
+    raw_text: null
+  - offset: "T+30m"
+    domain: "transit"
+    event_type: "route_cancelled"
+    entity_id: "route_1"
+    h3_cell: "89609612517ffff"
+    severity: 0.85
+    source_type: "official"
+    raw_text: "Route 1 suspended emergency diversion"
+  - offset: "T+1h"
+    domain: "health"
+    event_type: "capacity_high"
+    entity_id: "nmc_hospital"
+    h3_cell: "8960968de2fffff"
+    severity: 0.70
+    source_type: "official"
+    raw_text: null

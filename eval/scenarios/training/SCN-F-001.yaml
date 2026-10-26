@@ -1,0 +1,17 @@
+scenario_id: SCN-F-001
+family: F
+name: Gradual overnight power degradation
+description: See scenario_format.yaml for field definitions.
+seed: 7
+time_compression_factor: 60
+ground_truth:
+  polygon_h3_cells:
+    - 89609612913ffff
+    - 896096129c7ffff
+    - 8960961291bffff
+  severity: Medium
+  notes: Authored by B2 Sanvi. Real NMC H3 res-9 cells from nagpur_h3_res9.geojson.
+events: []
+decoys: []
+feed_loss: []
+contradictions: []

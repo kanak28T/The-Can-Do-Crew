@@ -1,0 +1,52 @@
+scenario_id: "SCN-C-001"
+family: "C"
+name: "Comms dead zone and health isolation"
+description: Tower T02 goes down at T+0 creating a comms dead zone. Comms and health isolation compound near mayo hospital.
+seed: 13
+time_compression_factor: 60
+ground_truth:
+  polygon_h3_cells:
+    - "89609612863ffff"
+    - "8960961287bffff"
+    - "89609612d47ffff"
+  severity: "High"
+  notes: "Tower T02 cells and mayo hospital cell. Dead zone plus no care access."
+events:
+  - offset: "T+0s"
+    domain: "comms"
+    event_type: "tower_down"
+    entity_id: "tower_T02"
+    h3_cell: "89609612863ffff"
+    severity: 1.0
+    source_type: "official"
+    raw_text: null
+  - offset: "T+20m"
+    domain: "comms"
+    event_type: "signal_degraded"
+    entity_id: "tower_T06"
+    h3_cell: "8960968da8bffff"
+    severity: 0.6
+    source_type: "sensor"
+    raw_text: null
+  - offset: "T+1h"
+    domain: "health"
+    event_type: "capacity_critical"
+    entity_id: "mayo_hospital"
+    h3_cell: "89609612d47ffff"
+    severity: 0.85
+    source_type: "official"
+    raw_text: null
+decoys:
+  - offset: "T+10m"
+    domain: "transit"
+    event_type: "minor_delay"
+    entity_id: "route_2"
+    h3_cell: "89609610c27ffff"
+    severity: 0.25
+    source_type: "sensor"
+    raw_text: null
+feed_loss:
+  - offset: "T+1h30m"
+    pattern: "whole_domain"
+    domain: "comms"
+    fraction: 0.60

@@ -1,0 +1,71 @@
+scenario_id: "SCN-A-001"
+family: "A"
+name: "Road closure and transit loss Sitabuldi corridor"
+description: Road R-14 closes at T+0 blocking primary route to City Hospital. Bus route 4 suspends at T+30m. Zone becomes isolated from healthcare access.
+seed: 42
+time_compression_factor: 60
+ground_truth:
+  polygon_h3_cells:
+    - "896096104a3ffff"
+    - "896096104b3ffff"
+    - "8960961237bffff"
+    - "8960961230bffff"
+  severity: "High"
+  notes: "Cells along blocked R-14 corridor and suspended route_4 overlap."
+events:
+  - offset: "T+0s"
+    domain: "road"
+    event_type: "road_closed"
+    entity_id: "road_R14"
+    h3_cell: "896096104a3ffff"
+    severity: 0.9
+    source_type: "official"
+    raw_text: null
+  - offset: "T+30m"
+    domain: "transit"
+    event_type: "route_cancelled"
+    entity_id: "route_4"
+    h3_cell: "8960961237bffff"
+    severity: 0.85
+    source_type: "official"
+    raw_text: "Bus route 4 suspended until further notice due to road closure"
+  - offset: "T+45m"
+    domain: "transit"
+    event_type: "route_cancelled"
+    entity_id: "route_4"
+    h3_cell: "8960961230bffff"
+    severity: 0.80
+    source_type: "crowdsourced"
+    raw_text: "Route 4 cancelled no buses on this road"
+  - offset: "T+1h"
+    domain: "health"
+    event_type: "capacity_high"
+    entity_id: "gmch_nagpur"
+    h3_cell: "89609612d6fffff"
+    severity: 0.65
+    source_type: "official"
+    raw_text: null
+decoys:
+  - offset: "T+15m"
+    domain: "power"
+    event_type: "voltage_drop"
+    entity_id: "feeder_F07"
+    h3_cell: "89609610d4fffff"
+    severity: 0.3
+    source_type: "sensor"
+    raw_text: null
+feed_loss:
+  - offset: "T+1h30m"
+    pattern: "random_streams"
+    domain: "transit"
+    fraction: 0.30
+contradictions:
+  - offset: "T+2h"
+    conflicting_event:
+      domain: "road"
+      event_type: "road_open"
+      entity_id: "road_R14"
+      h3_cell: "896096104a3ffff"
+      severity: 0.1
+      source_type: "official"
+      raw_text: null

@@ -1,0 +1,61 @@
+scenario_id: "SCN-B-001"
+family: "B"
+name: "Power cascade to water pump failure"
+description: Feeder F12 blackout at T+0 triggers pump_P05 failure at T+45m demonstrating power-water interaction term.
+seed: 7
+time_compression_factor: 60
+ground_truth:
+  polygon_h3_cells:
+    - "896096104a3ffff"
+    - "896096104b3ffff"
+    - "89609612363ffff"
+    - "8960961237bffff"
+  severity: "High"
+  notes: "F12 feeder cells and pump P05 cells. Cascade zone."
+events:
+  - offset: "T+0s"
+    domain: "power"
+    event_type: "blackout"
+    entity_id: "feeder_F12"
+    h3_cell: "896096104a3ffff"
+    severity: 1.0
+    source_type: "official"
+    raw_text: null
+  - offset: "T+15m"
+    domain: "power"
+    event_type: "voltage_drop"
+    entity_id: "feeder_F01"
+    h3_cell: "8960968dd53ffff"
+    severity: 0.6
+    source_type: "sensor"
+    raw_text: null
+  - offset: "T+45m"
+    domain: "water"
+    event_type: "pump_failure"
+    entity_id: "pump_P05"
+    h3_cell: "89609612363ffff"
+    severity: 0.9
+    source_type: "sensor"
+    raw_text: "Pump P05 offline pressure zero"
+  - offset: "T+1h"
+    domain: "water"
+    event_type: "pressure_drop"
+    entity_id: "pump_P05"
+    h3_cell: "8960961237bffff"
+    severity: 0.7
+    source_type: "sensor"
+    raw_text: null
+decoys:
+  - offset: "T+30m"
+    domain: "comms"
+    event_type: "signal_degraded"
+    entity_id: "tower_T06"
+    h3_cell: "8960968da8bffff"
+    severity: 0.3
+    source_type: "sensor"
+    raw_text: null
+feed_loss:
+  - offset: "T+2h"
+    pattern: "whole_domain"
+    domain: "power"
+    fraction: 0.40
