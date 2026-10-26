@@ -8,22 +8,7 @@ with open("data/mapping_tables/route_cells.json") as f:
 ROUTES = [k for k in ROUTE_CELLS if not k.startswith("_")]
 
 
-def _event(domain, event_type, entity_id, h3_cell, severity, source_type, scenario_tag=None):
-    now = datetime.now(timezone.utc)
-    return {
-        "event_id": str(uuid.uuid4()),
-        "domain": domain,
-        "event_type": event_type,
-        "entity_id": entity_id,
-        "cell": h3_cell,
-        "severity": round(severity, 3),
-        "source_type": source_type,
-        "source_reliability": {"official": 0.9, "sensor": 0.7, "crowdsourced": 0.5, "anonymous": 0.3}[source_type],
-        "event_timestamp": now.isoformat(),
-        "ingestion_timestamp": now.isoformat(),
-        "parse_confidence": 1.0,
-        "scenario_tag": scenario_tag,
-    }
+from sim._sim_base import _make_event as _event
 
 
 def route_cancelled(route_id: str = None, scenario_tag=None) -> List[dict]:
@@ -64,11 +49,11 @@ def service_resumed(route_id: str, scenario_tag=None) -> List[dict]:
 
 
 def random_stream(n: int = 5, seed: int = None) -> List[dict]:
-    if seed: random.seed(seed)
+    rng = random.Random(seed) if seed is not None else random
     events = []
     for _ in range(n):
-        route = random.choice(ROUTES)
-        event_type = random.choice(["cancelled", "severe_delay", "minor_delay", "overcrowding"])
+        route = rng.choice(ROUTES)
+        event_type = rng.choice(["cancelled", "severe_delay", "minor_delay", "overcrowding"])
         if event_type == "cancelled":
             events.extend(route_cancelled(route))
         elif event_type == "severe_delay":

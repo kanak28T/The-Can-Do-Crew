@@ -1,0 +1,44 @@
+{
+  "scenario_id": "SCN-C-002",
+  "family": "C",
+  "name": "Communication and power in-family test",
+  "description": "In-family evaluation replay with a fixed seed.",
+  "seed": 1400,
+  "time_compression_factor": 60,
+  "events": [
+    {
+      "offset": "T+0s",
+      "domain": "comms",
+      "event_type": "network_outage",
+      "entity_id": "tower_C12",
+      "h3_cell": "8960968ce53ffff",
+      "severity": 0.8,
+      "source_type": "sensor",
+      "raw_text": "Network outage"
+    },
+    {
+      "offset": "T+25m",
+      "domain": "power",
+      "event_type": "voltage_drop",
+      "entity_id": "feeder_F20",
+      "h3_cell": "8960968c327ffff",
+      "severity": 0.7,
+      "source_type": "sensor",
+      "raw_text": "Voltage drop"
+    }
+  ],
+  "decoys": [
+    {
+      "offset": "T+15m",
+      "domain": "transit",
+      "event_type": "traffic_slowdown",
+      "entity_id": "road_TEST",
+      "h3_cell": "8960968ce9bffff",
+      "severity": 0.2,
+      "source_type": "sensor",
+      "raw_text": null
+    }
+  ],
+  "feed_loss": [],
+  "contradictions": []
+}

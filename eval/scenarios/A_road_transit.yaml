@@ -1,0 +1,75 @@
+﻿{
+    "scenario_id":  "SCN-A-001",
+    "family":  "A",
+    "name":  "Road closure and transit loss",
+    "description":  "Road closure followed by transit suspension creates a local healthcare-access risk.",
+    "seed":  101,
+    "time_compression_factor":  60,
+    "events":  [
+                   {
+                       "offset":  "T+0s",
+                       "domain":  "road",
+                       "event_type":  "road_closure",
+                       "entity_id":  "road_R14",
+                       "h3_cell":  "89609610143ffff",
+                       "severity":  0.9,
+                       "source_type":  "official",
+                       "raw_text":  null
+                   },
+                   {
+                       "offset":  "T+30m",
+                       "domain":  "transit",
+                       "event_type":  "transit_suspension",
+                       "entity_id":  "route_4",
+                       "h3_cell":  "89609610143ffff",
+                       "severity":  0.85,
+                       "source_type":  "official",
+                       "raw_text":  "Bus route 4 suspended"
+                   },
+                   {
+                       "offset":  "T+45m",
+                       "domain":  "transit",
+                       "event_type":  "transit_suspension",
+                       "entity_id":  "route_4",
+                       "h3_cell":  "89609610147ffff",
+                       "severity":  0.8,
+                       "source_type":  "crowdsourced",
+                       "raw_text":  "No buses on this road"
+                   }
+               ],
+    "decoys":  [
+                   {
+                       "offset":  "T+15m",
+                       "domain":  "power",
+                       "event_type":  "voltage_drop",
+                       "entity_id":  "feeder_F07",
+                       "h3_cell":  "89609610173ffff",
+                       "severity":  0.3,
+                       "source_type":  "sensor",
+                       "raw_text":  null
+                   }
+               ],
+    "feed_loss":  [
+                      {
+                          "offset":  "T+1h",
+                          "pattern":  "whole_domain",
+                          "domain":  "transit",
+                          "fraction":  0.2
+                      }
+                  ],
+    "contradictions":  [
+                           {
+                               "offset":  "T+2h",
+                               "conflicting_event":  {
+                                                         "offset":  "T+2h",
+                                                         "domain":  "road",
+                                                         "event_type":  "road_open",
+                                                         "entity_id":  "road_R14",
+                                                         "h3_cell":  "89609610143ffff",
+                                                         "severity":  0.1,
+                                                         "source_type":  "official",
+                                                         "raw_text":  null
+                                                     }
+                           }
+                       ]
+}

@@ -1,0 +1,61 @@
+{
+  "scenario_id": "SCN-B-001",
+  "family": "B",
+  "name": "Feeder failure and water-pump outage",
+  "description": "Power feeder failure disables a water pump and leads to a local water-supply disruption.",
+  "seed": 202,
+  "time_compression_factor": 60,
+  "events": [
+    {
+      "offset": "T+0s",
+      "domain": "power",
+      "event_type": "feeder_failure",
+      "entity_id": "feeder_F12",
+      "h3_cell": "896096105b3ffff",
+      "severity": 0.9,
+      "source_type": "sensor",
+      "raw_text": "Feeder power failure"
+    },
+    {
+      "offset": "T+20m",
+      "domain": "water",
+      "event_type": "pump_failure",
+      "entity_id": "pump_P03",
+      "h3_cell": "89609610587ffff",
+      "severity": 0.85,
+      "source_type": "sensor",
+      "raw_text": "Pump stopped after power loss"
+    },
+    {
+      "offset": "T+40m",
+      "domain": "water",
+      "event_type": "water_supply_loss",
+      "entity_id": "zone_W03",
+      "h3_cell": "896096105bbffff",
+      "severity": 0.9,
+      "source_type": "official",
+      "raw_text": "Water supply interrupted"
+    }
+  ],
+  "decoys": [
+    {
+      "offset": "T+10m",
+      "domain": "transit",
+      "event_type": "traffic_slowdown",
+      "entity_id": "road_R88",
+      "h3_cell": "896096105d7ffff",
+      "severity": 0.25,
+      "source_type": "crowdsourced",
+      "raw_text": null
+    }
+  ],
+  "feed_loss": [
+    {
+      "offset": "T+1h",
+      "pattern": "random_streams",
+      "domain": "water",
+      "fraction": 0.3
+    }
+  ],
+  "contradictions": []
+}

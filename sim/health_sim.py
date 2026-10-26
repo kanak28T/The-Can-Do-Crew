@@ -8,22 +8,7 @@ with open("data/mapping_tables/hospital_cells.json") as f:
 HOSPITALS = [k for k in HOSPITAL_CELLS if not k.startswith("_")]
 
 
-def _event(domain, event_type, entity_id, h3_cell, severity, source_type, scenario_tag=None):
-    now = datetime.now(timezone.utc)
-    return {
-        "event_id": str(uuid.uuid4()),
-        "domain": domain,
-        "event_type": event_type,
-        "entity_id": entity_id,
-        "cell": h3_cell,
-        "severity": round(severity, 3),
-        "source_type": source_type,
-        "source_reliability": {"official": 0.9, "sensor": 0.7, "crowdsourced": 0.5, "anonymous": 0.3}[source_type],
-        "event_timestamp": now.isoformat(),
-        "ingestion_timestamp": now.isoformat(),
-        "parse_confidence": 1.0,
-        "scenario_tag": scenario_tag,
-    }
+from sim._sim_base import _make_event as _event
 
 
 def capacity_critical(hospital_id: str = None, severity: float = None, scenario_tag=None) -> List[dict]:
@@ -73,11 +58,11 @@ def capacity_normal(hospital_id: str, scenario_tag=None) -> List[dict]:
 
 
 def random_stream(n: int = 5, seed: int = None) -> List[dict]:
-    if seed: random.seed(seed)
+    rng = random.Random(seed) if seed is not None else random
     events = []
     for _ in range(n):
-        hospital = random.choice(HOSPITALS)
-        event_type = random.choice(["capacity_critical", "capacity_high", "equipment_failure", "staff_shortage", "outbreak"])
+        hospital = rng.choice(HOSPITALS)
+        event_type = rng.choice(["capacity_critical", "capacity_high", "equipment_failure", "staff_shortage", "outbreak_suspected"])
         if event_type == "capacity_critical":
             events.extend(capacity_critical(hospital))
         elif event_type == "capacity_high":

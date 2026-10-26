@@ -1,56 +1,58 @@
-"""Power domain simulator — feeder voltage drops and blackouts."""
-import json, random, uuid
-from datetime import datetime, timezone, timedelta
-from typing import List
+"""Power domain simulator — feeder voltage drops and blackouts.
+
+Deterministic: pass seed to random_stream(); same seed → same events.
+Uses 'cell' field (team convention). CanonicalEvent maps it to h3_cell.
+"""
+import json
+import random as _random
+from datetime import datetime
+from typing import List, Optional
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+
+from sim._sim_base import _make_event
 
 with open("data/mapping_tables/feeder_cells.json") as f:
     FEEDER_CELLS: dict = json.load(f)
 FEEDERS = [k for k in FEEDER_CELLS if not k.startswith("_")]
 
 
-def _event(domain, event_type, entity_id, h3_cell, severity, source_type, scenario_tag=None):
-    now = datetime.now(timezone.utc)
-    return {
-        "event_id": str(uuid.uuid4()),
-        "domain": domain,
-        "event_type": event_type,
-        "entity_id": entity_id,
-        "cell": h3_cell,
-        "severity": round(severity, 3),
-        "source_type": source_type,
-        "source_reliability": {"official": 0.9, "sensor": 0.7, "crowdsourced": 0.5, "anonymous": 0.3}[source_type],
-        "event_timestamp": now.isoformat(),
-        "ingestion_timestamp": now.isoformat(),
-        "parse_confidence": 1.0,
-        "scenario_tag": scenario_tag,
-    }
-
-
-def voltage_drop(feeder_id: str = None, severity: float = None, scenario_tag=None) -> List[dict]:
-    feeder = feeder_id or random.choice(FEEDERS)
-    sev = severity if severity is not None else random.uniform(0.3, 0.7)
+def voltage_drop(feeder_id: str = None, severity: float = None,
+                 scenario_tag: str = None, rng: _random.Random = None,
+                 ts: datetime = None) -> List[dict]:
+    rng = rng or _random.Random()
+    feeder = feeder_id or rng.choice(FEEDERS)
+    sev = severity if severity is not None else rng.uniform(0.3, 0.7)
     cells = FEEDER_CELLS.get(feeder, [])
-    return [_event("power", "voltage_drop", feeder, cell, sev, "sensor", scenario_tag) for cell in cells]
+    return [_make_event("power", "voltage_drop", feeder, cell, sev, "sensor", scenario_tag, ts)
+            for cell in cells]
 
 
-def blackout(feeder_id: str = None, scenario_tag=None) -> List[dict]:
-    feeder = feeder_id or random.choice(FEEDERS)
+def blackout(feeder_id: str = None, scenario_tag: str = None,
+             rng: _random.Random = None, ts: datetime = None) -> List[dict]:
+    rng = rng or _random.Random()
+    feeder = feeder_id or rng.choice(FEEDERS)
     cells = FEEDER_CELLS.get(feeder, [])
-    return [_event("power", "blackout", feeder, cell, 1.0, "official", scenario_tag) for cell in cells]
+    return [_make_event("power", "blackout", feeder, cell, 1.0, "official", scenario_tag, ts)
+            for cell in cells]
 
 
-def power_restored(feeder_id: str, scenario_tag=None) -> List[dict]:
+def power_restored(feeder_id: str, scenario_tag: str = None,
+                   ts: datetime = None) -> List[dict]:
     cells = FEEDER_CELLS.get(feeder_id, [])
-    return [_event("power", "power_restored", feeder_id, cell, 0.0, "official", scenario_tag) for cell in cells]
+    return [_make_event("power", "power_restored", feeder_id, cell, 0.0, "official", scenario_tag, ts)
+            for cell in cells]
 
 
-def random_stream(n: int = 5, seed: int = None) -> List[dict]:
-    if seed: random.seed(seed)
+def random_stream(n: int = 5, seed: Optional[int] = None,
+                  scenario_tag: str = None) -> List[dict]:
+    """Deterministic when seed is set. Same seed + same n → identical events."""
+    rng = _random.Random(seed)
     events = []
     for _ in range(n):
-        feeder = random.choice(FEEDERS)
-        if random.random() < 0.3:
-            events.extend(blackout(feeder))
+        feeder = rng.choice(FEEDERS)
+        if rng.random() < 0.3:
+            events.extend(blackout(feeder, scenario_tag=scenario_tag, rng=rng))
         else:
-            events.extend(voltage_drop(feeder))
+            events.extend(voltage_drop(feeder, scenario_tag=scenario_tag, rng=rng))
     return events
