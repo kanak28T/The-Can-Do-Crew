@@ -281,36 +281,34 @@ export default function CausalGraph({ drivers }: CausalGraphProps) {
           maskColor={theme === 'dark' ? 'rgba(15, 23, 32, 0.65)' : 'rgba(240, 240, 240, 0.65)'}
         />
         
-        <Panel position="top-left" className="bg-[var(--color-surface)]/90 backdrop-blur-md p-2 rounded border border-[var(--color-border)] text-xs shadow-md">
-          <div className="font-semibold text-[var(--color-text)] flex items-center gap-1.5">
-            <span>🕸️ Multi-Hop Causal Hypothesis Graph</span>
-            <span className="text-[10px] text-emerald-400 bg-emerald-500/15 px-1.5 py-0.2 rounded font-mono">
-              Editable DAG
+        <Panel position="top-left" className="bg-[var(--color-surface)]/95 backdrop-blur-md p-2.5 rounded border border-[var(--color-border)] text-xs shadow-md max-w-[420px]">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <div className="font-semibold text-[var(--color-text)] flex items-center gap-1.5 text-xs">
+              <span>🕸️ Multi-Hop Causal Graph</span>
+              <span className="text-[10px] text-emerald-400 bg-emerald-500/15 px-1.5 py-0.5 rounded font-mono">
+                Editable DAG
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 text-[10px] text-[var(--color-secondary)] pt-1 border-t border-[var(--color-border)]">
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-2 h-2 rounded-full bg-red-500/80" />
+              Root Stressor
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-2 h-2 rounded-full bg-sky-500/80" />
+              Intermediary
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-2 h-2 rounded-full bg-rose-600" />
+              Critical Impact
             </span>
           </div>
-          <p className="text-[11px] text-[var(--color-muted)] mt-0.5">
-            Drag nodes, connect handles to test counterfactual hypotheses.
-          </p>
           {selectedElement && (
-            <div className="mt-1 text-[11px] text-[var(--color-accent)] font-medium">
+            <div className="mt-1 text-[10.5px] text-[var(--color-accent)] font-medium">
               Selected: {selectedElement}
             </div>
           )}
-        </Panel>
-
-        <Panel position="top-right" className="bg-[var(--color-surface)]/90 backdrop-blur-md p-2 rounded border border-[var(--color-border)] text-[11px] text-[var(--color-secondary)] shadow-md flex items-center gap-3">
-          <span className="flex items-center gap-1">
-            <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500/70" />
-            Root Stressor
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="inline-block w-2.5 h-2.5 rounded-full bg-sky-500/70" />
-            Intermediary
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="inline-block w-2.5 h-2.5 rounded-full bg-rose-600 border border-white/50" />
-            Critical Impact
-          </span>
         </Panel>
       </ReactFlow>
     </div>
